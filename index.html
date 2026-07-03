@@ -1,0 +1,2356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordlings — Vocabulary Quest</title>
+<style>
+  :root{
+    --bg-deep:#241F3D;
+    --bg-mid:#322A52;
+    --bg-light:#433A68;
+    --cream:#FAF6ED;
+    --cream-dim:#C7C0E0;
+    --gold:#E8A658;
+    --gold-soft:#F6CD96;
+    --mint:#5FCBA8;
+    --mint-soft:#DFF6EC;
+    --coral:#FF8C7A;
+    --coral-soft:#FFE6E1;
+    --lavender:#8B7FD6;
+    --display: 'Baloo 2', 'Avenir Next Rounded', 'SF Pro Rounded', -apple-system, 'Segoe UI', Verdana, sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --shadow-pop: 0 6px 0 rgba(0,0,0,0.18);
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+
+  body{
+    background: radial-gradient(ellipse at top, #3A3160 0%, #241F3D 55%, #1A1730 100%);
+    background-attachment: fixed;
+    font-family: var(--body);
+    color: var(--cream);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .starfield{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  }
+  .twinkle{
+    position:absolute; width: 3px; height:3px; background: var(--cream);
+    border-radius: 50%; opacity: 0.4; animation: twinkle 3s ease-in-out infinite;
+  }
+  @keyframes twinkle{ 0%,100%{ opacity:0.12; } 50%{ opacity:0.7; } }
+
+  .sheet{ max-width: 740px; margin: 0 auto; padding: 20px 16px 60px; position: relative; z-index: 1; }
+
+  /* ===== Header ===== */
+  .topbar{ display:flex; justify-content: space-between; align-items:center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .brand{ display:flex; align-items:center; gap:9px; }
+  .brand-emoji{ font-size: 28px; line-height:1; }
+  .brand h1{ font-family: var(--display); font-size: 21px; font-weight: 800; margin:0; color: var(--cream); letter-spacing: -0.01em; }
+  .brand .sub{ font-size: 11px; color: var(--cream-dim); margin-top:1px; }
+
+  .nav-buttons{ display:flex; gap:6px; }
+  .nav-btn{
+    background: rgba(255,255,255,0.08);
+    border: none; border-radius: 12px;
+    color: var(--cream); font-family: var(--display); font-weight:700;
+    font-size: 12px; padding: 8px 12px; cursor:pointer;
+    display:flex; align-items:center; gap:5px;
+  }
+  .nav-btn:hover{ background: rgba(255,255,255,0.16); }
+
+  /* ===== Star + egg progress card ===== */
+  .progress-card{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .progress-top{ display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap:10px; flex-wrap:wrap; }
+  .star-count{ display:flex; align-items:center; gap: 6px; font-family: var(--display); font-size: 19px; font-weight: 800; color: var(--gold); white-space:nowrap; }
+  .egg-note{ font-size: 11.5px; color: var(--cream-dim); text-align:right; }
+  .egg-track{ height: 14px; background: rgba(0,0,0,0.3); border-radius: 8px; overflow:hidden; }
+  .egg-fill{ height:100%; background: linear-gradient(90deg, var(--gold-soft), var(--gold)); border-radius: 8px; transition: width 0.5s cubic-bezier(.2,.9,.3,1.2); width:0%; }
+
+  .mini-stats{ display:flex; gap:8px; margin-top: 11px; flex-wrap:wrap; }
+  .mini-chip{ font-size: 11.5px; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 4px 10px; color: var(--cream-dim); display:flex; align-items:center; gap:5px; }
+  .mini-chip b{ color: var(--cream); }
+
+  /* ===== Mode select ===== */
+  .intro-note{ font-size: 13.5px; color: var(--cream-dim); line-height: 1.55; margin: 0 0 16px; text-align:center; }
+
+  .mode-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  @media (max-width: 540px){ .mode-grid{ grid-template-columns: 1fr; } }
+
+  .mode-card{
+    background: linear-gradient(165deg, var(--bg-light), var(--bg-deep));
+    border: none; border-radius: 18px; padding: 17px 15px 15px; cursor: pointer;
+    text-align: left; font-family: var(--body); position: relative;
+    box-shadow: var(--shadow-pop), inset 0 0 0 1px rgba(255,255,255,0.06);
+    transition: transform 0.12s ease; color: var(--cream);
+  }
+  .mode-card:hover{ transform: translateY(-3px); }
+  .mode-card:active{ transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.06); }
+  .mode-card .mode-icon{ font-size: 28px; display:block; margin-bottom: 7px; }
+  .mode-card h3{ font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0 0 4px; color: var(--cream); }
+  .mode-card p{ font-size: 12px; color: var(--cream-dim); margin: 0; line-height: 1.4; }
+  .mode-card .star-tag{
+    position:absolute; top:13px; right:13px; font-family: var(--display); font-size: 10.5px; font-weight:700;
+    color: var(--bg-deep); background: var(--gold); border-radius: 10px; padding: 3px 8px;
+  }
+
+  .secondary-actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+  .secondary-btn{
+    background: rgba(255,255,255,0.07); border: 1px dashed rgba(255,255,255,0.25);
+    border-radius: 14px; color: var(--cream-dim); font-family: var(--display); font-weight:700;
+    font-size: 12.5px; padding: 10px 16px; cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+  .secondary-btn:hover{ color:var(--cream); border-color: rgba(255,255,255,0.45); }
+
+  /* ===== Question screen ===== */
+  .question-screen{ display:none; }
+  .question-screen.active{ display:block; }
+  .mode-select-screen{ display:none; }
+  .mode-select-screen.active{ display:block; }
+  .results-screen{ display:none; }
+  .results-screen.active{ display:block; }
+  .album-screen{ display:none; }
+  .album-screen.active{ display:block; }
+  .addword-screen{ display:none; }
+  .addword-screen.active{ display:block; }
+
+  .progress-row{ display:flex; justify-content: space-between; align-items:center; margin-bottom: 14px; gap: 8px; }
+  .back-link{
+    font-family: var(--body); font-weight:600; font-size: 13px; color: var(--cream-dim);
+    cursor:pointer; border:none; background: rgba(255,255,255,0.08); border-radius: 14px;
+    padding: 6px 12px; white-space:nowrap;
+  }
+  .back-link:hover{ color: var(--cream); background: rgba(255,255,255,0.14); }
+  .quest-progress-track{ flex:1; height: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; overflow:hidden; }
+  .quest-progress-fill{ height:100%; background: linear-gradient(90deg, var(--mint), var(--gold)); border-radius: 6px; transition: width 0.3s ease; }
+  .q-counter{ font-family: var(--display); font-weight:700; font-size: 13px; color: var(--cream-dim); white-space:nowrap; }
+
+  .question-card{
+    background: linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 22px; padding: 24px 20px 20px;
+    position: relative; min-height: 280px;
+  }
+
+  .q-top-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .q-eyebrow{ font-family: var(--display); font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold); }
+
+  .hint-btn{
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px; color: var(--cream); font-family: var(--display); font-weight:700;
+    font-size: 11.5px; padding: 6px 11px; cursor:pointer; display:flex; align-items:center; gap:5px;
+    white-space:nowrap;
+  }
+  .hint-btn:hover{ background: rgba(255,255,255,0.16); }
+  .hint-btn:disabled{ opacity:0.35; cursor:default; }
+  .hint-btn .hint-cost{ color: var(--gold); }
+
+  .q-prompt{ font-family: var(--display); font-weight: 600; font-size: 20px; line-height: 1.45; margin: 0 0 18px; color: var(--cream); }
+  .q-prompt .target-word{ font-weight:800; color: var(--gold); }
+  .q-prompt .blank{ display:inline-block; min-width: 90px; border-bottom: 3px dashed var(--mint); text-align:center; }
+  .q-pos{ font-style: italic; font-size: 13px; color: var(--cream-dim); font-family: var(--body); font-weight: 400; }
+
+  .hint-reveal{
+    font-size: 13px; color: var(--gold-soft); background: rgba(232,166,88,0.12);
+    border-radius: 10px; padding: 8px 12px; margin: -6px 0 16px; display:none;
+  }
+  .hint-reveal.show{ display:block; }
+
+  .options-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 480px){ .options-grid{ grid-template-columns: 1fr; } }
+
+  .option-btn{
+    background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.18); border-radius: 14px;
+    padding: 13px 14px; font-family: var(--body); font-weight: 500; font-size: 14.5px; text-align:left;
+    cursor:pointer; color: var(--cream); transition: background 0.1s ease, transform 0.08s ease;
+  }
+  .option-btn:hover{ background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.3); }
+  .option-btn:active{ transform: scale(0.98); }
+  .option-btn:disabled{ cursor:default; }
+  .option-btn.correct{ background: var(--mint-soft); border-color: var(--mint); color: #14422F; font-weight:700; }
+  .option-btn.incorrect{ background: var(--coral-soft); border-color: var(--coral); color: #7A2E22; }
+  .option-btn.removed{ opacity: 0.25; pointer-events:none; }
+
+  .spelling-input-row{ display:flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+  .spelling-input{
+    flex:1; min-width: 160px; font-family: var(--display); font-weight:600; font-size: 17px;
+    padding: 12px 16px; border: 2px solid rgba(255,255,255,0.25); border-radius: 14px;
+    background: rgba(255,255,255,0.08); color: var(--cream); letter-spacing: 0.02em;
+  }
+  .spelling-input::placeholder{ color: rgba(250,246,237,0.4); font-family: var(--body); font-weight:400; }
+  .spelling-input:focus{ outline: 3px solid var(--gold); outline-offset:1px; border-color: var(--gold); }
+  .spelling-input.correct{ border-color: var(--mint); background: var(--mint-soft); color:#14422F; }
+  .spelling-input.incorrect{ border-color: var(--coral); background: var(--coral-soft); color:#7A2E22; }
+
+  .submit-btn{
+    font-family: var(--display); font-weight:700; font-size: 15px; background: var(--gold); color: var(--bg-deep);
+    border: none; border-radius: 14px; padding: 12px 20px; cursor:pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  }
+  .submit-btn:active{ box-shadow: 0 1px 0 rgba(0,0,0,0.18); transform: translateY(3px); }
+  .submit-btn:disabled{ opacity:0.4; cursor:default; }
+
+  .sentence-zone{ margin-top: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 13px 15px; }
+  .sent-prompt{ font-size: 13px; color: var(--cream-dim); margin-bottom: 9px; line-height: 1.5; }
+  .sent-input{ width: 100%; font-family: var(--body); font-size: 14px; padding: 10px 13px; border: 2px solid rgba(255,255,255,.18); border-radius: 10px; background: rgba(255,255,255,.07); color: var(--cream); resize: vertical; min-height: 60px; margin-bottom: 9px; }
+  .sent-input:focus{ outline: 3px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+  .sent-input::placeholder{ color: rgba(250,246,240,.3); }
+  .sent-checking{ font-size: 12px; color: var(--cream-dim); text-align: center; padding: 8px 0; }
+  .sent-feedback{ border-radius: 10px; padding: 10px 13px; margin-bottom: 9px; font-size: 13px; line-height: 1.55; }
+  .sent-feedback.good{ background: var(--mint-soft); color: #14422F; }
+  .sent-feedback.try{ background: rgba(245,200,66,.1); color: #7a5c00; border: 1px solid rgba(245,200,66,.3); }
+  .sent-btns{ display: flex; gap: 8px; }
+  .sent-submit{ flex: 1; font-family: var(--display); font-weight: 700; font-size: 13px; background: var(--gold); color: var(--sky-dark); border: none; border-radius: 10px; padding: 10px; cursor: pointer; }
+  .sent-submit:disabled{ opacity: .4; cursor: default; }
+  .sent-skip{ background: rgba(255,255,255,.08); border: none; border-radius: 10px; color: var(--cream-dim); font-size: 13px; font-weight: 600; padding: 10px 14px; cursor: pointer; }
+  .feedback-strip{ margin-top: 16px; padding: 13px 16px; border-radius: 14px; font-size: 14px; line-height: 1.5; display:none; }
+  .feedback-strip.show{ display:block; animation: popIn 0.25s cubic-bezier(.2,.9,.3,1.3); }
+  .feedback-strip.correct{ background: var(--mint-soft); color:#14422F; }
+  .feedback-strip.incorrect{ background: var(--coral-soft); color:#7A2E22; }
+  .feedback-strip .fb-word{ font-weight:800; font-family: var(--display); font-size:16px; }
+  .feedback-strip .fb-stars{ font-weight:700; }
+  @keyframes popIn{ from{ opacity:0; transform: scale(0.92);} to{opacity:1; transform:scale(1);} }
+
+  .next-btn{
+    margin-top:16px; font-family: var(--display); font-weight:700; font-size: 15px; background: var(--mint);
+    color: #0E2E22; border: none; border-radius: 14px; padding: 13px 20px; cursor:pointer; display:none;
+    width:100%; box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+  }
+  .next-btn.show{ display:block; }
+  .next-btn:active{ box-shadow: 0 1px 0 rgba(0,0,0,0.18); transform: translateY(3px); }
+
+  .star-burst{ position:absolute; top: 16px; right: 16px; font-size: 0; pointer-events:none; }
+  .burst-star{ position:absolute; font-size: 20px; opacity:0; animation: burstOut 0.9s ease forwards; }
+  @keyframes burstOut{ 0%{ opacity:1; transform: translate(0,0) scale(0.6) rotate(0deg); } 100%{ opacity:0; transform: translate(var(--tx), var(--ty)) scale(1.1) rotate(180deg); } }
+
+  /* ===== Hatch overlay ===== */
+  .hatch-overlay{
+    position: fixed; inset:0; background: rgba(26,23,48,0.92); z-index: 50; display:none;
+    align-items:center; justify-content:center; text-align:center; padding: 20px;
+  }
+  .hatch-overlay.show{ display:flex; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+  .hatch-card{ animation: popIn 0.4s cubic-bezier(.2,.9,.3,1.3); max-width: 320px; }
+  .hatch-card .hatch-label{ font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--gold); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:14px; }
+  .hatch-card .hatch-svg-wrap{ width: 150px; height:150px; margin: 0 auto 16px; }
+  .hatch-card .hatch-name{ font-family: var(--display); font-weight: 800; font-size: 24px; color: var(--cream); margin-bottom: 6px; }
+  .hatch-card .hatch-desc{ font-size: 13.5px; color: var(--cream-dim); margin-bottom: 22px; line-height:1.5; }
+  .hatch-continue-btn{
+    font-family: var(--display); font-weight:700; font-size: 15px; background: var(--gold); color: var(--bg-deep);
+    border: none; border-radius: 14px; padding: 13px 28px; cursor:pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.25);
+  }
+
+  /* ===== Results screen ===== */
+  .results-screen{ display:none; }
+  .results-screen.active{ display:block; }
+  .results-card{ background: linear-gradient(165deg, var(--bg-light), var(--bg-deep)); border: 1px solid rgba(255,255,255,0.14); border-radius: 22px; padding: 30px 24px; text-align:center; }
+  .results-icon{ font-size: 44px; margin-bottom: 6px; }
+  .results-stamp{ font-family: var(--display); font-weight:700; font-size: 14px; color: var(--cream-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .results-score{ font-family: var(--display); font-size: 44px; font-weight:800; color: var(--gold); line-height:1; margin: 6px 0; }
+  .results-grade{ font-family: var(--display); font-size: 21px; font-weight:700; margin-bottom: 6px; color: var(--cream); }
+  .results-message{ font-size: 13.5px; color: var(--cream-dim); margin-bottom: 10px; }
+  .results-stars-earned{ font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--gold); margin-bottom: 20px; }
+  .results-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .results-btn{ font-family: var(--display); font-weight:700; font-size: 13.5px; border-radius: 14px; padding: 11px 18px; cursor:pointer; border: none; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+  .results-btn.primary{ background: var(--gold); color: var(--bg-deep); }
+  .results-btn.secondary{ background: rgba(255,255,255,0.1); color: var(--cream); }
+  .results-btn:active{ box-shadow: 0 1px 0 rgba(0,0,0,0.2); transform: translateY(3px); }
+
+  .missed-words{ margin-top: 24px; text-align:left; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 16px; }
+  .missed-words h4{ font-family: var(--display); font-size: 14px; margin: 0 0 10px; color: var(--cream); }
+  .missed-item{ font-size: 13px; padding: 9px 0; border-bottom: 1px dashed rgba(255,255,255,0.12); color: var(--cream-dim); }
+  .missed-item:last-child{ border-bottom:none; }
+  .missed-item b{ font-family: var(--display); color: var(--gold); }
+
+  /* ===== Album screen ===== */
+  .album-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 16px; }
+  .album-slot{ background: rgba(255,255,255,0.06); border-radius: 16px; padding: 10px 6px 8px; text-align:center; border: 1px solid rgba(255,255,255,0.1); }
+  .album-slot.empty{ opacity: 0.25; }
+  .album-slot.evolved{ border: 1px solid rgba(255,200,87,0.5); background: rgba(255,200,87,0.07); }
+  .album-slot .slot-svg{ width: 52px; height:52px; margin: 0 auto 4px; }
+  .album-slot .slot-name{ font-family: var(--display); font-size: 10.5px; font-weight:700; color: var(--cream); line-height:1.2; }
+  .album-slot .slot-word{ font-size: 9.5px; color: var(--cream-dim); margin-top:2px; }
+  .album-slot .slot-badges{ font-size: 10px; margin-top: 2px; }
+  .album-slot .slot-evolved-tag{ font-size: 9px; color: var(--gold); font-weight:700; margin-top:4px; }
+  .album-slot .slot-progress{ font-size: 8.5px; color: var(--cream-dim); margin-top:4px; opacity:0.8; }
+  .album-header{ text-align:center; margin: 6px 0 4px; }
+  .album-header .album-count{ font-family: var(--display); font-weight:800; font-size: 26px; color: var(--gold); }
+  .album-filter-row{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin: 14px 0; }
+  .filter-chip{
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+    color: var(--cream-dim); font-family: var(--display); font-weight:700; font-size: 11px; padding: 6px 11px; cursor:pointer;
+  }
+  .filter-chip.active{ background: var(--gold); color: var(--bg-deep); border-color: var(--gold); }
+
+  /* ===== Add word screen ===== */
+  .addword-card{ background: linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.14); border-radius: 22px; padding: 22px 20px; }
+  .form-row{ margin-bottom: 14px; }
+  .form-row label{ display:block; font-family: var(--display); font-weight:700; font-size: 12.5px; color: var(--cream-dim); margin-bottom: 6px; }
+  .form-row input, .form-row textarea, .form-row select{
+    width:100%; font-family: var(--body); font-size: 14.5px; padding: 11px 13px; border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.07); color: var(--cream);
+  }
+  .form-row input::placeholder, .form-row textarea::placeholder{ color: rgba(250,246,237,0.35); }
+  .form-row input:focus, .form-row textarea:focus, .form-row select:focus{ outline: 3px solid var(--gold); outline-offset:1px; border-color: var(--gold); }
+  .form-row textarea{ resize: vertical; min-height: 56px; font-family: var(--body); }
+  .form-row select option{ background: var(--bg-deep); color: var(--cream); }
+  .form-hint{ font-size: 11.5px; color: var(--cream-dim); margin-top:4px; }
+  .form-actions{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .form-submit-btn{ font-family: var(--display); font-weight:700; font-size: 14.5px; background: var(--mint); color:#0E2E22; border:none; border-radius:14px; padding: 12px 20px; cursor:pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.18); }
+  .form-export-btn{ font-family: var(--display); font-weight:700; font-size: 14.5px; background: var(--gold); color: var(--bg-deep); border:none; border-radius:14px; padding: 12px 20px; cursor:pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.18); }
+  .form-export-btn:disabled{ opacity:0.4; cursor:default; }
+  .addword-note{ font-size: 12.5px; color: var(--cream-dim); line-height:1.6; margin-bottom:18px; background: rgba(255,255,255,0.05); border-radius:12px; padding:12px 14px; }
+  .new-words-list{ margin-top:20px; border-top: 1px solid rgba(255,255,255,0.12); padding-top:14px; }
+  .new-words-list h4{ font-family: var(--display); font-size:14px; margin:0 0 10px; color: var(--cream); }
+  .new-word-item{ font-size:13px; padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); color: var(--cream-dim); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .new-word-item b{ font-family: var(--display); color: var(--mint); }
+  .remove-word-btn{ background:none; border:none; color: var(--coral); font-size: 16px; cursor:pointer; flex-shrink:0; }
+  .form-msg{ font-size: 13px; padding: 10px 13px; border-radius: 10px; margin-top:12px; display:none; }
+  .form-msg.show{ display:block; }
+  .form-msg.error{ background: var(--coral-soft); color:#7A2E22; }
+  .form-msg.success{ background: var(--mint-soft); color:#14422F; }
+
+  .footer-note{ text-align:center; font-size: 11px; color: var(--cream-dim); margin-top: 28px; opacity: 0.6; }
+
+  .hidden{ display:none !important; }
+  button{ font-family: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{ outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+  /* ===== iPad optimisation (768px+) ===== */
+  @media (min-width: 768px){
+    .sheet{ max-width: 800px; padding: 24px 24px 60px; }
+
+    /* Mode cards — bigger, more finger-friendly */
+    .mode-grid{ grid-template-columns: 1fr 1fr; gap: 14px; }
+    .mode-card{ padding: 20px 18px 18px; border-radius: 20px; }
+    .mode-card .mode-icon{ font-size: 34px; margin-bottom: 8px; }
+    .mode-card h3{ font-size: 18px; margin-bottom: 5px; }
+    .mode-card p{ font-size: 13px; }
+
+    /* Progress card */
+    .prog-card{ padding: 16px 20px; border-radius: 20px; margin-bottom: 16px; }
+    .star-total{ font-size: 22px; }
+    .chip{ font-size: 12.5px; padding: 4px 12px; }
+
+    /* Question card */
+    .question-card{
+      padding: 28px 24px 28px;
+      border-radius: 24px;
+    }
+    .q-prompt{ font-size: 22px; margin-bottom: 24px; line-height: 1.5; }
+    .q-eyebrow{ font-size: 13px; margin-bottom: 12px; }
+
+    /* Answer options — much bigger tap targets for fingers */
+    .options-grid{ gap: 14px; }
+    .option-btn{
+      padding: 20px 16px;
+      font-size: 16px;
+      border-radius: 16px;
+      min-height: 72px;
+      line-height: 1.4;
+    }
+
+    /* Spelling input */
+    .spelling-input{ font-size: 20px; padding: 16px 18px; border-radius: 14px; }
+    .submit-btn{ font-size: 16px; padding: 16px 24px; border-radius: 14px; }
+
+    /* Feedback */
+    .feedback-strip{ font-size: 15px; padding: 18px 20px; border-radius: 16px; margin-top: 20px; }
+    .fb-word{ font-size: 18px; }
+
+    /* Next button */
+    #next-btn{ padding: 18px; font-size: 16px; border-radius: 14px; margin-top: 16px; }
+
+    /* Album grid — more columns on iPad */
+    .album-grid{ grid-template-columns: repeat(auto-fill,minmax(110px,1fr)); gap: 12px; }
+    .album-slot{ padding: 12px 8px 10px; border-radius: 18px; }
+    .album-slot .slot-svg{ width: 64px; height: 64px; }
+    .album-slot .slot-name{ font-size: 12px; }
+    .album-slot .slot-word{ font-size: 11px; }
+    .album-slot .slot-progress{ font-size: 10px; }
+    .album-slot .slot-evolved-tag{ font-size: 10px; }
+
+    /* Hatch overlay */
+    .hatch-svg-wrap{ width: 170px; height: 170px; }
+    .hatch-name{ font-size: 26px; }
+    .hatch-desc{ font-size: 14px; }
+    .cont-btn{ font-size: 16px; padding: 16px 30px; border-radius: 14px; }
+
+    /* Results */
+    .results-score{ font-size: 52px; }
+    .results-grade{ font-size: 24px; }
+    .results-msg{ font-size: 15px; }
+
+    /* Nav */
+    .nav-btn{ font-size: 13px; padding: 9px 14px; border-radius: 12px; }
+
+    /* Hint button */
+    .hint-btn{ font-size: 13px; padding: 8px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="starfield" id="starfield"></div>
+
+<div class="sheet">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="brand-emoji">🥚</span>
+      <div>
+        <h1>Wordlings</h1>
+        <div class="sub">Collect Wordlings as you learn new words</div>
+      </div>
+    </div>
+    <div class="nav-buttons">
+      <button class="nav-btn" id="album-nav-btn">📖 Album</button>
+      <button class="nav-btn" id="addword-nav-btn">➕ Add word</button>
+    </div>
+  </div>
+
+  <div class="progress-card">
+    <div class="progress-top">
+      <div class="star-count">⭐ <span id="star-total">0</span></div>
+      <div class="egg-note" id="egg-note">Answer correctly to hatch your first egg!</div>
+    </div>
+    <div class="egg-track"><div class="egg-fill" id="egg-fill"></div></div>
+    <div class="mini-stats">
+      <div class="mini-chip">🥚 <b id="hatched-count">0</b> Wordlings hatched</div>
+      <div class="mini-chip">🔥 Best streak: <b id="best-streak">0</b></div>
+      <div class="mini-chip">🎯 Accuracy: <b id="accuracy-pct">—</b></div>
+    </div>
+  </div>
+
+  <!-- MODE SELECT -->
+  <div class="mode-select-screen active" id="mode-select-screen">
+    <p class="intro-note">Pick a game below. Earn stars, hatch eggs, and grow your Wordling collection! ✨</p>
+
+    <div class="mode-grid">
+      <button class="mode-card" data-mode="spelling" style="border:1px solid rgba(245,200,66,.2);box-shadow:0 5px 0 rgba(245,200,66,.15),inset 0 0 0 1px rgba(255,255,255,.06);">
+        <span class="star-tag" style="background:#E8A658;">⭐⭐ harder!</span>
+        <span class="mode-icon">🚀</span>
+        <h3>Spelling Launch</h3>
+        <p>Type the word from the clue. 2 stars each — plus a star just for trying!</p>
+      </button>
+
+      <button class="mode-card" data-mode="define">
+        <span class="star-tag">⭐ x12</span>
+        <span class="mode-icon">🔍</span>
+        <h3>Meaning Match</h3>
+        <p>Spot the true meaning among the decoys.</p>
+      </button>
+
+      <button class="mode-card" data-mode="synonym">
+        <span class="star-tag">⭐ x12</span>
+        <span class="mode-icon">✨</span>
+        <h3>Twin Words</h3>
+        <p>Find the word that means almost the same thing.</p>
+      </button>
+
+      <button class="mode-card" data-mode="antonym">
+        <span class="star-tag">⭐ x10</span>
+        <span class="mode-icon">🌗</span>
+        <h3>Opposite Day</h3>
+        <p>Find the word that means the total opposite.</p>
+      </button>
+
+      <button class="mode-card" data-mode="cloze">
+        <span class="star-tag">⭐ x10</span>
+        <span class="mode-icon">🧩</span>
+        <h3>Fill the Gap</h3>
+        <p>Drop the missing word into the sentence.</p>
+      </button>
+
+      <button class="mode-card" data-mode="mixed">
+        <span class="star-tag">⭐ x20</span>
+        <span class="mode-icon">🌟</span>
+        <h3>Big Quest</h3>
+        <p>A big 20-question mix of everything!</p>
+      </button>
+
+      <button class="mode-card" data-mode="oddonout">
+        <span class="star-tag">⭐ x10</span>
+        <span class="mode-icon">🔎</span>
+        <h3>Odd One Out</h3>
+        <p>Three words share a theme — spot the one that doesn't belong.</p>
+      </button>
+
+      <button class="mode-card" data-mode="wordfamily">
+        <span class="star-tag">⭐ x8</span>
+        <span class="mode-icon">🌿</span>
+        <h3>Word Family</h3>
+        <p>Six words, two groups — pick the three that belong together.</p>
+      </button>
+    </div>
+
+    <div class="secondary-actions">
+      <button class="secondary-btn" id="reset-btn">🗑️ Reset all progress</button>
+    </div>
+
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div class="question-screen" id="question-screen">
+    <div class="progress-row">
+      <button class="back-link" id="quit-btn">← Pause</button>
+      <div class="quest-progress-track"><div class="quest-progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="q-counter"><span id="q-current">1</span>/<span id="q-total">10</span></div>
+    </div>
+
+    <div class="question-card" id="question-card">
+      <div class="star-burst" id="star-burst"></div>
+      <div class="q-top-row">
+        <div class="q-eyebrow" id="q-eyebrow">Question</div>
+        <button class="hint-btn" id="hint-btn">💡 Hint <span class="hint-cost">(−1 ⭐)</span></button>
+      </div>
+      <div class="q-prompt" id="q-prompt">Loading…</div>
+      <div class="hint-reveal" id="hint-reveal"></div>
+      <div id="answer-area"></div>
+
+      <div class="feedback-strip" id="feedback-strip">
+        <div class="fb-word" id="fb-word"></div>
+        <div id="fb-text"></div>
+      </div>
+      <div class="sentence-zone" id="sentence-zone" style="display:none">
+        <div class="sent-prompt" id="sent-prompt"></div>
+        <textarea class="sent-input" id="sent-input" rows="2" placeholder="Write your sentence here…"></textarea>
+        <div class="sent-checking" id="sent-checking" style="display:none">Checking your sentence…</div>
+        <div class="sent-feedback" id="sent-feedback" style="display:none"></div>
+        <div class="sent-btns">
+          <button class="sent-submit" id="sent-submit">Check my sentence ✨</button>
+          <button class="sent-skip" id="sent-skip">Skip</button>
+        </div>
+      </div>
+      <button class="next-btn" id="next-btn">Next question →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="results-screen" id="results-screen">
+    <div class="results-card">
+      <div class="results-icon" id="results-icon">🌟</div>
+      <div class="results-stamp" id="results-mode-label">Spelling Launch</div>
+      <div class="results-score" id="results-score">0/10</div>
+      <div class="results-grade" id="results-grade">—</div>
+      <div class="results-message" id="results-message"></div>
+      <div class="results-stars-earned" id="results-stars-earned">+0 stars earned</div>
+      <div class="results-actions">
+        <button class="results-btn primary" id="retry-btn">Play again</button>
+        <button class="results-btn secondary" id="menu-btn">Choose a game</button>
+      </div>
+      <div class="missed-words" id="missed-words-wrap" style="display:none;">
+        <h4>Words to practise next time</h4>
+        <div id="missed-words-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALBUM SCREEN -->
+  <div class="album-screen" id="album-screen">
+    <div class="progress-row">
+      <button class="back-link" id="album-back-btn">← Back</button>
+      <div style="flex:1"></div>
+    </div>
+    <div class="album-header">
+      <div class="album-count" id="album-count">0 / 180</div>
+      <div style="font-size:12.5px;color:var(--cream-dim);">Wordlings hatched</div>
+    </div>
+    <div class="album-filter-row" id="album-filter-row"></div>
+    <div class="album-grid" id="album-grid"></div>
+  </div>
+
+  <!-- ADD WORD SCREEN -->
+  <div class="addword-screen" id="addword-screen">
+    <div class="progress-row">
+      <button class="back-link" id="addword-back-btn">← Back</button>
+      <div style="flex:1"></div>
+    </div>
+    <div class="addword-card">
+      <div class="addword-note">
+        ✏️ Learned a new word in your 11+ prep? Add it here and play with it straight away. New words you add only stay on <i>this device, in this browser tab</i> — use <b>Download my new words</b> below to send them back so they can be added to the master list for good.
+      </div>
+
+      <div class="form-row">
+        <label for="nw-word">Word</label>
+        <input type="text" id="nw-word" placeholder="e.g. magnanimous">
+      </div>
+      <div class="form-row">
+        <label for="nw-pos">Part of speech</label>
+        <select id="nw-pos">
+          <option value="noun">noun</option>
+          <option value="verb">verb</option>
+          <option value="adjective">adjective</option>
+          <option value="adverb">adverb</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="nw-category">Category</label>
+        <select id="nw-category"></select>
+      </div>
+      <div class="form-row">
+        <label for="nw-meaning">Meaning</label>
+        <textarea id="nw-meaning" placeholder="What does it mean?"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="nw-sentence">Example sentence</label>
+        <textarea id="nw-sentence" placeholder="Use the word in a sentence"></textarea>
+        <div class="form-hint">Tip: include the exact word in your sentence so Fill the Gap can use it.</div>
+      </div>
+      <div class="form-row">
+        <label for="nw-synonyms">Synonyms (separate with a comma)</label>
+        <input type="text" id="nw-synonyms" placeholder="e.g. generous, kind, big-hearted">
+      </div>
+      <div class="form-row">
+        <label for="nw-antonyms">Antonyms (separate with a comma, optional)</label>
+        <input type="text" id="nw-antonyms" placeholder="e.g. mean, selfish">
+      </div>
+
+      <div class="form-msg" id="form-msg"></div>
+
+      <div class="form-actions">
+        <button class="form-submit-btn" id="form-submit-btn">Add this word</button>
+        <button class="form-export-btn" id="form-export-btn" disabled>⬇ Download my new words</button>
+      </div>
+
+      <div class="new-words-list" id="new-words-list-wrap" style="display:none;">
+        <h4>Words you've added this session</h4>
+        <div id="new-words-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Keep collecting Wordlings! 🥚✨</div>
+</div>
+
+<!-- HATCH OVERLAY -->
+<div class="hatch-overlay" id="hatch-overlay">
+  <div class="hatch-card">
+    <div class="hatch-label" id="hatch-label">An egg hatched!</div>
+    <div class="hatch-svg-wrap" id="hatch-svg-wrap"></div>
+    <div class="hatch-name" id="hatch-name">Glimmer</div>
+    <div class="hatch-desc" id="hatch-desc">A curious little Wordling, drawn out by your hard work.</div>
+    <button class="hatch-continue-btn" id="hatch-continue-btn">Add to album →</button>
+  </div>
+</div>
+
+<script id="vocab-data" type="application/json">
+[{"word":"Drab","pos":"adjective","category":"Appearance & Description","meaning":"dull or uninteresting","sentence":"I feel so drab in this uniform!","synonyms":["boring","dull","wet"],"antonyms":["vibrant"],"evolution":"dreary","dateAdded":"2026-03-29","oxfordLevel":"B2"},{"word":"Entombing","pos":"adjective","category":"Actions & Behaviour","meaning":"to bury something or someone","sentence":"The nuclear waste has been entombed in concrete deep under the ground.","synonyms":["bury","toomb"],"antonyms":["dig out"],"evolution":"interred","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"Rigorous","pos":"verb","category":"Character & Personality","meaning":"careful to look at or consider every part of something to make certain it is correct or safe","sentence":"The Manhattan district attorney’s office had a pretty rigorous training program.","synonyms":["careful","diligent"],"antonyms":["careless"],"evolution":"meticulous","dateAdded":"2026-04-04","oxfordLevel":"C1"},{"word":"Penetrating","pos":"adjective","category":"Appearance & Description","meaning":"slicing through or stern","sentence":"The serpent gave a penetrating look.","synonyms":["cold","controlling","dark"],"antonyms":["welcoming"],"evolution":"incisive","dateAdded":"2026-03-30","oxfordLevel":"C1"},{"word":"Pigment","pos":"noun","category":"Objects & Things","meaning":"powder to colour something","sentence":"The pigment shown is very expensive.","synonyms":["colour","powder"],"antonyms":["dull"],"evolution":"colourant","dateAdded":"2026-04-04","oxfordLevel":"B2"},{"word":"Rectify","pos":"verb","category":"Actions & Behaviour","meaning":"put something right after doing it wrong","sentence":"I am determined to take whatever action is necessary to rectify the situation.","synonyms":["correct","accurate"],"antonyms":["leave"],"evolution":"remedy","dateAdded":"2026-03-29","oxfordLevel":"C1"},{"word":"Derivative","pos":"noun","category":"Objects & Things","meaning":"a form of something made or developed from another form","sentence":"This is a derivative of seaweed that is currently used as a food additive","synonyms":["deritation","by product","spin off"],"antonyms":["original","genuine"],"evolution":"offshoot","dateAdded":"2026-03-29","oxfordLevel":"B2"},{"word":"Derivative","pos":"adjective","category":"Honesty & Deception","meaning":"something based on something else; If something is derivative, it is not the result of new ideas, but has been developed from or copies something else","sentence":"His painting/style is very derivative.","synonyms":["derived","evolved","unoriginal","plagiarised"],"antonyms":["uninspired","original","genuine"],"evolution":"unoriginal","dateAdded":"2026-03-29","oxfordLevel":"B2"},{"word":"Ethereal","pos":"adjective","category":"Appearance & Description","meaning":"very light and delicate, especially in a way that does not seem to come from the real, physical world","sentence":"The church echoed ethereally.","synonyms":["faint","airy","floaty","quiet"],"antonyms":["loud"],"evolution":"otherworldly","dateAdded":"2026-03-29","oxfordLevel":"Beyond"},{"word":"Formidable","pos":"adjective","category":"Character & Personality","meaning":"strong and unbeatable","sentence":"the opponent was not quite so formidable","synonyms":["great","brilliant","super"],"antonyms":["feeble"],"evolution":"redoubtable","dateAdded":"2026-04-04","oxfordLevel":"C1"},{"word":"Stable","pos":"noun","category":"Places & Surroundings","meaning":"a place for animals. Normally horses.","sentence":"The stables were cleaned this morning.","synonyms":["house","cottage"],"antonyms":["unstable"],"evolution":"outbuilding","dateAdded":"2026-03-29","oxfordLevel":"B2"},{"word":"Embrace","pos":"verb","category":"Relationships & Affection","meaning":"to hold someone tightly, normally in a loving way","sentence":"The father embraced his wife as he came home from his business trip.","synonyms":["hug","hold"],"antonyms":["push"],"evolution":"envelop","dateAdded":"2026-04-04","oxfordLevel":"B2"},{"word":"Disparage","pos":"verb","category":"Conflict & Disapproval","meaning":"to criticize someone or something in a way that shows you don't respect or value the person","sentence":"The actor's work for charity has been disparaged for badness.","synonyms":["mean"],"antonyms":["help"],"evolution":"denigrate","dateAdded":"2026-04-04","oxfordLevel":"Beyond"},{"word":"Impeccable","pos":"adjectives","category":"Character & Personality","meaning":"perfect, with no problems or bad parts","sentence":"The five star steak was truly impeccable with a juicy fill.","synonyms":["perfect","flawless","immaculate","irreproachable"],"antonyms":["imperfect","defective","tarnished","deficient"],"evolution":"immaculate","dateAdded":"2026-03-29","oxfordLevel":"Beyond"},{"word":"Espouse","pos":"verb","category":"Actions & Behaviour","meaning":"recommend a course of action","sentence":"Vegetarianism is one cause she does not espouse.","synonyms":["recommend","adopt","advocate","back","embrace"],"antonyms":["unadvised","denounce","renounce","reject"],"evolution":"advocate","dateAdded":"2026-03-29","oxfordLevel":"Beyond"},{"word":"Deny","pos":"verb","category":"Actions & Behaviour","meaning":"to refuse","sentence":"The counsellor refused to change the rules.","synonyms":["reject"],"antonyms":["admit"],"evolution":"repudiate","dateAdded":"2026-03-29","oxfordLevel":"B2"},{"word":"Extricate","pos":"verb","category":"Actions & Behaviour","meaning":"to free somebody or remove something from a difficult situation","sentence":"It took hours to extricate the car from the sand.","synonyms":["remove","free","untangle","liberate"],"antonyms":["trap","entangle","ensnare"],"evolution":"disentangle","dateAdded":"2026-03-29","oxfordLevel":"Beyond"},{"word":"Gravity","pos":"noun","category":"Size, Amount & Degree","meaning":"seriousness","sentence":"I don't think you understand the gravity of the situation.","synonyms":["seriousness","severity","significance","solemnity"],"antonyms":["frivolousness","levity"],"evolution":"solemnity","dateAdded":"2026-03-29","oxfordLevel":"C1"},{"word":"Phishing","pos":"verb","category":"Honesty & Deception","meaning":"getting people to click on a trap","sentence":"The hacker was phishing the computer.","synonyms":["sneaky"],"antonyms":["sharing"],"evolution":"deception","dateAdded":"2026-03-30","oxfordLevel":"Beyond"},{"word":"Resort","pos":"noun","category":"Places & Surroundings","meaning":"go on holiday or rest","sentence":"The resort was so relaxing that I really recommend it!","synonyms":["spa"],"antonyms":["painful experience"],"evolution":"retreat","dateAdded":"2026-03-29","oxfordLevel":"B2"},{"word":"Eccentric","pos":"adjective","category":"Character & Personality","meaning":"something strange or unusual","sentence":"the eccentric mouse was becoming a zombie.","synonyms":["strange"],"antonyms":["normal"],"evolution":"idiosyncratic","dateAdded":"2026-04-04","oxfordLevel":"C1"},{"word":"Meddle","pos":"verb","category":"Actions & Behaviour","meaning":"to mess up something","sentence":"the jester loved meddling with the peasants","synonyms":["to cause chaos"],"antonyms":["calming down"],"evolution":"interfere","dateAdded":"2026-04-04","oxfordLevel":"Beyond"},{"word":"Fabricate","pos":"verb","category":"Honesty & Deception","meaning":"to invent or produce something false in order to deceive someone","sentence":"He was late, so he fabricated an excuse to avoid trouble","synonyms":["trick"],"antonyms":["Genuine","Authentic","Real","Factual"],"evolution":"concoct","dateAdded":"2026-04-04","oxfordLevel":"Beyond"},{"word":"Mistake","pos":"noun","category":"Actions & Behaviour","meaning":"unintentional but unpleasant action","sentence":"The letter is full of spelling mistakes!","synonyms":["uh oh"],"antonyms":["impeccable"],"evolution":"blunder","dateAdded":"2026-03-29","oxfordLevel":"A1"},{"word":"Decipher","pos":"verb","category":"Actions & Behaviour","meaning":"to discover the meaning of something written badly or in a difficult or hidden way","sentence":"To decipher the safe, they had to find the clues.","synonyms":["work-out"],"antonyms":["nothing"],"evolution":"decode","dateAdded":"2026-03-31","oxfordLevel":"Beyond"},{"word":"Preposterous","pos":"adjective","category":"Character & Personality","meaning":"ridiculously stupid","sentence":"The greedy boy was absolutely preposterous.","synonyms":["stupid","ridiculaous"],"antonyms":["sense"],"evolution":"ludicrous","dateAdded":"2026-03-31","oxfordLevel":"Beyond"},{"word":"Brishwood","pos":"noun","category":"Objects & Things","meaning":"small branches brocken off trees.","sentence":"The brushwood toppled on maia's head.","synonyms":["wood"],"antonyms":["trunk"],"evolution":"kindling","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"Incessant","pos":"verb","category":"Time & Change","meaning":"never stopping, especially in an annoying or unpleasant way","sentence":"The boy shouted in a pompous way.","synonyms":["boastful way"],"antonyms":["calm","well-behaved"],"evolution":"interminable","dateAdded":"2026-04-04","oxfordLevel":"Beyond"},{"word":"Pompous","pos":"verb","category":"Character & Personality","meaning":"to do sometihng in a boastful way","sentence":"The dumbfounded cat was incessant and rolled on the carpet.","synonyms":["driving up the wall"],"antonyms":["obedient"],"evolution":"self-important","dateAdded":"2026-04-04","oxfordLevel":"Beyond"},{"word":"Hypocrite","pos":"noun","category":"People & Roles","meaning":"to believe something but you don't do it","sentence":"annoyingly the man loved nature but was a hypocrite","synonyms":["fraud","pretender","fake"],"antonyms":["genuine person","honest person"],"evolution":"dissembler","dateAdded":"2026-04-05","oxfordLevel":"Beyond"},{"word":"Reptilian","pos":"adjective","category":"Nature & Weather","meaning":"scally or a reptile","sentence":"Medusa's reptillian skin was rough and scaly.","synonyms":["scaly","serpentine","lizard-like"],"antonyms":["smooth","mammalian"],"evolution":"serpentine","dateAdded":"2026-04-06","oxfordLevel":"Beyond"},{"word":"Judicious","pos":"verb","category":"Character & Personality","meaning":"having or showing reason and good judgment in making decisions","sentence":"The law allows for the judicious use of force in some situations","synonyms":["sensible","wise","sound"],"antonyms":["rash","reckless","unwise"],"evolution":"prudent","dateAdded":"2026-04-07","oxfordLevel":"Beyond"},{"word":"Harrowing","pos":"adverb","category":"Feelings & Reactions","meaning":"extremely upsetting because connected with suffering","sentence":"For many women, the harrowing prospect of giving evidence in a rape case can be too much to bear.","synonyms":["distressing","traumatic","disturbing"],"antonyms":["comforting","pleasant"],"evolution":"traumatic","dateAdded":"2026-04-07","oxfordLevel":"Beyond"},{"word":"Devestate","pos":"verb","category":"Actions & Behaviour","meaning":"to destroy a place or thing completely or cause great damage","sentence":"Farm facilities had been devastated, and fields and pastures had gone unattended.","synonyms":["destroy","ravage","ruin"],"antonyms":["restore","rebuild"],"evolution":"ravage","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"Ply","pos":"veb","category":"Actions & Behaviour","meaning":"to sell or to work regularly at something, especially at a job that involves selling things","sentence":"they were plying the fields","synonyms":["trade","work at","sell"],"antonyms":["neglect","abandon"],"evolution":"trade","dateAdded":"2026-04-17","oxfordLevel":"Beyond"},{"word":"Damsel","pos":"noun","category":"People & Roles","meaning":"a young woman who is not married","sentence":"The heroine in this movie isn’t like some damsel in distress waiting to be saved.","synonyms":["maiden","young woman","girl"],"antonyms":["matron","old woman"],"evolution":"maiden","dateAdded":"2026-04-17","oxfordLevel":"Beyond"},{"word":"Disposition","pos":"noun","category":"Character & Personality","meaning":"the particular type of character that a person naturally has","sentence":"the particular type of character that a person naturally has","synonyms":["temperament","nature","character"],"antonyms":[],"evolution":"temperament","dateAdded":"2026-04-17","oxfordLevel":"Beyond"},{"word":"Imperiously","pos":"adverb","category":"Character & Personality","meaning":"in an unpleasantly proud way and expecting to be obeyed","sentence":"Her father somewhat imperiously appointed her to succeed him","synonyms":["haughtily","arrogantly","bossily"],"antonyms":["humbly","meekly"],"evolution":"haughtily","dateAdded":"2026-04-17","oxfordLevel":"Beyond"},{"word":"Contempuous","pos":"adjective?","category":"Conflict & Disapproval","meaning":"contemptuous manner","sentence":"He was very contemptuous of \"popular\" writers, whom he described as having no talent","synonyms":["scornful","disdainful","disrespectful"],"antonyms":["respectful","admiring"],"evolution":"disdainful","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"Sinuous","pos":"adjective","category":"Appearance & Description","meaning":"moving in a twisting, curving, or indirect way, or having many curves","sentence":"He enjoyed watching the sinuous bodies of the dancers.","synonyms":["winding","curving","snaking"],"antonyms":["straight","direct"],"evolution":"serpentine","dateAdded":"2026-04-17","oxfordLevel":"Beyond"},{"word":"Insatiable","pos":"verb","category":"Feelings & Reactions","meaning":"(especially of a desire or need) too great to be satisfied","sentence":"Like so many politicians, he had an insatiable appetite for power.","synonyms":["unquenchable","voracious","ravenous"],"antonyms":["satisfied","content"],"evolution":"voracious","dateAdded":"2026-04-17","oxfordLevel":"Beyond"},{"word":"Reknowned","pos":"adjective","category":"Character & Personality","meaning":"famous and admired for doing something well","sentence":"The chef is renowned for his incredible desserts.","synonyms":["famous","celebrated","well-known"],"antonyms":["unknown","obscure"],"evolution":"illustrious","dateAdded":"2026-04-30","oxfordLevel":"C1"},{"word":"scrumptious","pos":"adjective","category":"Food & Taste","meaning":"tasting extremely good; delicious","sentence":"The cake she baked was absolutely scrumptious.","synonyms":["delicious","delectable","mouth-watering"],"antonyms":["disgusting","unappetising"],"evolution":"delectable","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"infectious","pos":"adjective","category":"Feelings & Reactions","meaning":"spreading quickly and affecting other people, especially in relation to feelings or laughter","sentence":"Her laughter was so infectious that soon the whole room was giggling.","synonyms":["contagious","catching"],"antonyms":["uninspiring","unaffecting"],"evolution":"contagious","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"pretentious","pos":"adjective","category":"Character & Personality","meaning":"trying to seem more important, clever, or special than you really are","sentence":"He used long words in a pretentious way to sound clever.","synonyms":["self-important","affected","pompous"],"antonyms":["modest","unassuming"],"evolution":"affected","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"conscientious","pos":"adjective","category":"Character & Personality","meaning":"taking care to do things carefully and correctly","sentence":"She is a conscientious worker who always checks her work twice.","synonyms":["diligent","careful","thorough"],"antonyms":["careless","negligent"],"evolution":"meticulous","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"atrocious","pos":"adjective","category":"Appearance & Description","meaning":"extremely bad or unpleasant","sentence":"The weather was atrocious all weekend.","synonyms":["appalling","dreadful","terrible"],"antonyms":["wonderful","excellent"],"evolution":"appalling","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"precocious","pos":"adjective","category":"Character & Personality","meaning":"showing mature qualities or abilities at an unusually early age","sentence":"The precocious child could already read at the age of three.","synonyms":["advanced","gifted","mature"],"antonyms":["backward","slow-developing"],"evolution":"advanced","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"luscious","pos":"adjective","category":"Food & Taste","meaning":"having a delicious taste or smell, especially something sweet","sentence":"The luscious strawberries were sweet and juicy.","synonyms":["delicious","succulent","juicy"],"antonyms":["bland","unappetising"],"evolution":"succulent","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"financial","pos":"adjective","category":"Money & Value","meaning":"relating to money or how money is managed","sentence":"The company is facing serious financial difficulties.","synonyms":["monetary","fiscal","economic"],"antonyms":["non-financial"],"evolution":"fiscal","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"impartial","pos":"adjective","category":"Character & Personality","meaning":"not supporting one person or side more than another; fair","sentence":"The judge must remain impartial throughout the trial.","synonyms":["unbiased","neutral","fair"],"antonyms":["biased","partial","prejudiced"],"evolution":"unbiased","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"prejudicial","pos":"adjective","category":"Conflict & Disapproval","meaning":"causing harm or damage to someone's rights or interests; biased","sentence":"The leaked evidence was prejudicial to the defendant's case.","synonyms":["harmful","damaging","biased"],"antonyms":["beneficial","fair"],"evolution":"detrimental","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"preferential","pos":"adjective","category":"Permission & Rules","meaning":"giving an advantage to a particular person or group","sentence":"Members receive preferential treatment, such as priority booking.","synonyms":["favoured","privileged","special"],"antonyms":["equal","unfavourable"],"evolution":"privileged","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"superficial","pos":"adjective","category":"Appearance & Description","meaning":"not thorough or deep; only on the surface","sentence":"He gave the report a superficial glance before signing it.","synonyms":["shallow","surface","cursory"],"antonyms":["thorough","deep","profound"],"evolution":"cursory","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"substantial","pos":"adjective","category":"Size, Amount & Degree","meaning":"large in size, value, or importance","sentence":"She received a substantial amount of money from the sale.","synonyms":["considerable","significant","sizeable"],"antonyms":["insignificant","minor","negligible"],"evolution":"considerable","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"torrential","pos":"adjective","category":"Nature & Weather","meaning":"(of rain) falling very heavily and fast","sentence":"Torrential rain flooded the streets within minutes.","synonyms":["heavy","pouring","relentless"],"antonyms":["light","gentle"],"evolution":"relentless","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"observant","pos":"adjective","category":"Character & Personality","meaning":"quick to notice things","sentence":"The observant detective spotted the clue immediately.","synonyms":["watchful","attentive","perceptive"],"antonyms":["unobservant","inattentive"],"evolution":"perceptive","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"patient","pos":"adjective","category":"Character & Personality","meaning":"able to stay calm and wait for a long time without getting annoyed","sentence":"The teacher was patient with the struggling students.","synonyms":["tolerant","calm","forbearing"],"antonyms":["impatient","irritable"],"evolution":"forbearing","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"efficient","pos":"adjective","category":"Character & Personality","meaning":"working well and producing results without wasting time or energy","sentence":"The new machine is far more efficient than the old one.","synonyms":["effective","productive","competent"],"antonyms":["inefficient","wasteful"],"evolution":"proficient","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"transparent","pos":"adjective","category":"Appearance & Description","meaning":"easy to see through, or easy to understand and notice","sentence":"The glass door was so transparent it was hard to see.","synonyms":["see-through","clear","obvious"],"antonyms":["opaque","obscure"],"evolution":"discernible","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"dominant","pos":"adjective","category":"Character & Personality","meaning":"more important, powerful, or noticeable than other things","sentence":"The lion is the dominant animal in the pride.","synonyms":["powerful","controlling","leading"],"antonyms":["submissive","subordinate"],"evolution":"predominant","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"assistant","pos":"noun","category":"People & Roles","meaning":"a person who helps someone else in their work","sentence":"Her assistant booked all the meetings for the week.","synonyms":["helper","aide","deputy"],"antonyms":["boss","superior"],"evolution":"deputy","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"consistent","pos":"adjective","category":"Character & Personality","meaning":"always behaving or happening in a similar way","sentence":"Her grades have been consistent all year.","synonyms":["steady","reliable","uniform"],"antonyms":["inconsistent","erratic"],"evolution":"unwavering","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"expectancy","pos":"noun","category":"Feelings & Reactions","meaning":"a feeling that something is about to happen, especially something good","sentence":"There was a sense of expectancy in the crowd before kick-off.","synonyms":["anticipation","hope"],"antonyms":["indifference"],"evolution":"anticipation","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"efficiency","pos":"noun","category":"Actions & Behaviour","meaning":"the quality of working well and not wasting time or energy","sentence":"Improved efficiency in the factory cut production costs.","synonyms":["effectiveness","productivity"],"antonyms":["inefficiency","wastefulness"],"evolution":"competence","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"hesitancy","pos":"noun","category":"Feelings & Reactions","meaning":"a tendency to pause before doing or saying something because you are uncertain","sentence":"His hesitancy to answer suggested he was unsure.","synonyms":["reluctance","uncertainty","doubt"],"antonyms":["decisiveness","confidence"],"evolution":"reluctance","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"transparency","pos":"noun","category":"Honesty & Deception","meaning":"the quality of being easy to see through, or being open and honest","sentence":"The company promised greater transparency in its accounts.","synonyms":["openness","clarity","honesty"],"antonyms":["secrecy","opacity"],"evolution":"candour","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"frequency","pos":"noun","category":"Time & Change","meaning":"the rate at which something happens over a period of time","sentence":"The frequency of storms has increased this year.","synonyms":["rate","regularity"],"antonyms":["infrequency","rarity"],"evolution":"regularity","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"consistency","pos":"noun","category":"Character & Personality","meaning":"the quality of always behaving in the same way","sentence":"The team's consistency helped them win the league.","synonyms":["steadiness","uniformity","reliability"],"antonyms":["inconsistency","unpredictability"],"evolution":"uniformity","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"decency","pos":"noun","category":"Character & Personality","meaning":"behaviour that is honest, fair, and respectful","sentence":"He at least had the decency to apologise.","synonyms":["morality","respectability","propriety"],"antonyms":["indecency","immorality"],"evolution":"propriety","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"tolerable","pos":"adjective","category":"Feelings & Reactions","meaning":"able to be accepted or endured, although not pleasant","sentence":"The pain was tolerable with painkillers.","synonyms":["bearable","acceptable","endurable"],"antonyms":["unbearable","intolerable"],"evolution":"endurable","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"considerable","pos":"adjective","category":"Size, Amount & Degree","meaning":"large in amount, size, or extent","sentence":"They spent a considerable amount of time on the project.","synonyms":["substantial","significant","sizeable"],"antonyms":["negligible","insignificant"],"evolution":"substantial","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"changeable","pos":"adjective","category":"Time & Change","meaning":"likely to change often or suddenly","sentence":"The weather in spring is very changeable.","synonyms":["variable","unpredictable","inconsistent"],"antonyms":["constant","stable","unchanging"],"evolution":"volatile","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"knowledgeable","pos":"adjective","category":"Character & Personality","meaning":"knowing a lot about many things or about a particular subject","sentence":"The guide was extremely knowledgeable about local history.","synonyms":["well-informed","learned","expert"],"antonyms":["ignorant","uninformed"],"evolution":"erudite","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"permissible","pos":"adjective","category":"Permission & Rules","meaning":"allowed, especially by law or by official rules","sentence":"Smoking is not permissible inside the building.","synonyms":["allowed","acceptable","lawful"],"antonyms":["forbidden","prohibited"],"evolution":"sanctioned","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"plausible","pos":"adjective","category":"Honesty & Deception","meaning":"seeming likely to be true, or reasonable","sentence":"He gave a plausible excuse for being late.","synonyms":["believable","credible","reasonable"],"antonyms":["implausible","unconvincing"],"evolution":"credible","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"accessible","pos":"adjective","category":"Places & Surroundings","meaning":"able to be reached, entered, or used easily","sentence":"The new building is fully accessible for wheelchair users.","synonyms":["reachable","available","obtainable"],"antonyms":["inaccessible","unreachable"],"evolution":"obtainable","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"conceit","pos":"noun","category":"Character & Personality","meaning":"excessive pride in yourself or your abilities","sentence":"His conceit made him believe he could never be wrong.","synonyms":["vanity","arrogance","self-importance"],"antonyms":["modesty","humility"],"evolution":"vanity","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"feisty","pos":"adjective","category":"Character & Personality","meaning":"having a strong, determined, and energetic character","sentence":"The feisty puppy refused to back down from the bigger dog.","synonyms":["spirited","lively","determined"],"antonyms":["timid","meek","passive"],"evolution":"spirited","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"forfeit","pos":"verb","category":"Permission & Rules","meaning":"to lose or give up something as a punishment or because of a rule","sentence":"He had to forfeit his deposit when he cancelled late.","synonyms":["lose","surrender","relinquish"],"antonyms":["keep","retain"],"evolution":"relinquish","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"heist","pos":"noun","category":"Conflict & Disapproval","meaning":"a robbery, especially one carried out by a skilled or organised group","sentence":"The gang planned an elaborate bank heist.","synonyms":["robbery","theft"],"antonyms":["return","restitution"],"evolution":"robbery","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"leisure","pos":"noun","category":"Time & Change","meaning":"time when you are not working and can relax or do things you enjoy","sentence":"She spends her leisure time reading and painting.","synonyms":["free time","relaxation","recreation"],"antonyms":["work","labour"],"evolution":"recreation","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"counterfeit","pos":"adjective","category":"Honesty & Deception","meaning":"made to look exactly like something else in order to deceive people; fake","sentence":"The market was selling counterfeit designer handbags.","synonyms":["fake","forged","fraudulent"],"antonyms":["genuine","authentic","real"],"evolution":"fraudulent","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"sleight","pos":"noun","category":"Honesty & Deception","meaning":"skill in using your hands to deceive people, often used in magic tricks","sentence":"The magician's sleight of hand fooled the entire audience.","synonyms":["dexterity","trickery","skill"],"antonyms":["clumsiness"],"evolution":"dexterity","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"autumn","pos":"noun","category":"Nature & Weather","meaning":"the season between summer and winter when leaves fall from trees","sentence":"The leaves turn golden brown in autumn.","synonyms":["fall","harvest time"],"antonyms":["spring"],"evolution":"harvest-time","dateAdded":"2026-06-29","oxfordLevel":"A1"},{"word":"align","pos":"verb","category":"Actions & Behaviour","meaning":"to arrange things so they form a straight line, or to agree with a particular group or idea","sentence":"Make sure the shelves align with the wall edge.","synonyms":["line up","arrange","coordinate"],"antonyms":["misalign","disorganise"],"evolution":"coordinate","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"obscene","pos":"adjective","category":"Conflict & Disapproval","meaning":"extremely offensive, often relating to sex","sentence":"The film was banned for its obscene content.","synonyms":["indecent","offensive","vulgar"],"antonyms":["decent","modest","tasteful"],"evolution":"indecent","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"limb","pos":"noun","category":"Objects & Things","meaning":"an arm or leg of a person or animal, or a large branch of a tree","sentence":"The climber injured his limb during the fall.","synonyms":["arm","leg","branch"],"antonyms":["trunk"],"evolution":"appendage","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"column","pos":"noun","category":"Objects & Things","meaning":"a tall, often round, structure used to support a building, or a regular article in a newspaper","sentence":"She writes a weekly column for the local newspaper.","synonyms":["pillar","post","article"],"antonyms":["row"],"evolution":"pillar","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"gnaw","pos":"verb","category":"Actions & Behaviour","meaning":"to keep biting or chewing something repeatedly","sentence":"The dog loved to gnaw on its bone for hours.","synonyms":["chew","bite","nibble"],"antonyms":["leave alone"],"evolution":"nibble","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"campaign","pos":"noun","category":"Actions & Behaviour","meaning":"a planned set of activities aimed at achieving a particular goal, often political or social","sentence":"The charity launched a campaign to raise awareness of homelessness.","synonyms":["drive","movement","crusade"],"antonyms":["inaction"],"evolution":"crusade","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"conceited","pos":"adjective","category":"Character & Personality","meaning":"having too much pride in yourself or your abilities","sentence":"He became conceited after winning the competition.","synonyms":["vain","arrogant","self-important"],"antonyms":["modest","humble"],"evolution":"self-important","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"conclude","pos":"verb","category":"Actions & Behaviour","meaning":"to decide something is true based on evidence, or to end something","sentence":"The detective concluded that the butler was guilty.","synonyms":["decide","deduce","finish"],"antonyms":["begin","start"],"evolution":"deduce","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"condemn","pos":"verb","category":"Conflict & Disapproval","meaning":"to say strongly that you disapprove of something, or to sentence someone to a punishment","sentence":"The government condemned the attack as an act of terror.","synonyms":["denounce","criticise","censure"],"antonyms":["praise","approve","commend"],"evolution":"denounce","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"conferred","pos":"verb","category":"Actions & Behaviour","meaning":"discussed something with someone to exchange opinions, or formally gave a title or award","sentence":"The university conferred an honorary degree on the scientist.","synonyms":["discussed","consulted","granted"],"antonyms":["withheld"],"evolution":"consulted","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"confine","pos":"verb","category":"Permission & Rules","meaning":"to keep someone or something within limits, or to keep someone in a small space","sentence":"The prisoner was confined to a small cell.","synonyms":["restrict","limit","enclose"],"antonyms":["free","release","liberate"],"evolution":"restrict","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"conscience","pos":"noun","category":"Feelings & Reactions","meaning":"the part of your mind that tells you whether what you are doing is right or wrong","sentence":"His conscience wouldn't let him keep the money he found.","synonyms":["morals","principles","sense of right and wrong"],"antonyms":["shamelessness"],"evolution":"principles","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"conscious","pos":"adjective","category":"Feelings & Reactions","meaning":"awake and aware of what is happening around you","sentence":"The patient was conscious throughout the operation.","synonyms":["aware","awake","alert"],"antonyms":["unconscious","unaware"],"evolution":"perceptive","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"consent","pos":"noun","category":"Permission & Rules","meaning":"permission for something to happen, given willingly","sentence":"The doctor needed the patient's consent before the surgery.","synonyms":["permission","approval","agreement"],"antonyms":["refusal","objection"],"evolution":"approval","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"conserve","pos":"verb","category":"Actions & Behaviour","meaning":"to protect something and prevent it from being wasted or destroyed","sentence":"We should all try to conserve water during the drought.","synonyms":["preserve","protect","save"],"antonyms":["waste","squander","destroy"],"evolution":"preserve","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"consideration","pos":"noun","category":"Character & Personality","meaning":"careful thought, or kindness shown to other people's feelings","sentence":"He showed great consideration for his elderly neighbour.","synonyms":["thoughtfulness","care","reflection"],"antonyms":["carelessness","disregard"],"evolution":"thoughtfulness","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"communicate","pos":"verb","category":"Actions & Behaviour","meaning":"to share or exchange information, news, or ideas with someone","sentence":"It's hard to communicate when there's a language barrier.","synonyms":["convey","express","share"],"antonyms":["withhold","conceal"],"evolution":"convey","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"community","pos":"noun","category":"People & Roles","meaning":"a group of people who live in the same area or share something in common","sentence":"The local community came together to clean the park.","synonyms":["society","neighbourhood","population"],"antonyms":["individual"],"evolution":"populace","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"competition","pos":"noun","category":"Conflict & Disapproval","meaning":"a contest in which people try to win, or the activity of competing","sentence":"She entered the baking competition at the county fair.","synonyms":["contest","rivalry","tournament"],"antonyms":["cooperation"],"evolution":"rivalry","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"controversy","pos":"noun","category":"Conflict & Disapproval","meaning":"a strong public disagreement about something","sentence":"The new policy caused a great deal of controversy.","synonyms":["dispute","disagreement","debate"],"antonyms":["agreement","consensus"],"evolution":"dispute","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"consist","pos":"verb","category":"Size, Amount & Degree","meaning":"to be formed or made up of particular parts or things","sentence":"The meal consisted of soup, bread, and fruit.","synonyms":["comprise","be made up of","contain"],"antonyms":["exclude"],"evolution":"comprise","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"conspire","pos":"verb","category":"Honesty & Deception","meaning":"to plan secretly with others to do something illegal or harmful","sentence":"The two men conspired to rob the bank.","synonyms":["plot","scheme","collude"],"antonyms":["expose","reveal"],"evolution":"collude","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"constant","pos":"adjective","category":"Time & Change","meaning":"happening all the time, or staying the same without changing","sentence":"She lived with the constant noise of traffic outside.","synonyms":["continuous","unchanging","steady"],"antonyms":["occasional","variable"],"evolution":"unrelenting","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"consume","pos":"verb","category":"Actions & Behaviour","meaning":"to eat or drink something, or to use up a resource","sentence":"The factory consumes a huge amount of electricity.","synonyms":["eat","use up","devour"],"antonyms":["produce","conserve"],"evolution":"devour","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"contemporary","pos":"adjective","category":"Time & Change","meaning":"existing or happening now, or belonging to the same time period as something else","sentence":"The museum has a fine collection of contemporary art.","synonyms":["modern","current","present-day"],"antonyms":["ancient","historical","outdated"],"evolution":"present-day","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"contempt","pos":"noun","category":"Conflict & Disapproval","meaning":"a feeling that someone or something deserves no respect at all","sentence":"She looked at the cheat with utter contempt.","synonyms":["scorn","disdain","disrespect"],"antonyms":["respect","admiration"],"evolution":"disdain","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"contest","pos":"noun","category":"Conflict & Disapproval","meaning":"a competition in which people try to do something better than everyone else","sentence":"She won the singing contest at school.","synonyms":["competition","tournament","rivalry"],"antonyms":["agreement","concession"],"evolution":"tournament","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"contrast","pos":"noun","category":"Size, Amount & Degree","meaning":"an obvious difference between two or more things","sentence":"There was a striking contrast between the two paintings.","synonyms":["difference","distinction"],"antonyms":["similarity","resemblance"],"evolution":"distinction","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"contribute","pos":"verb","category":"Actions & Behaviour","meaning":"to give money, help, or ideas to a shared effort or cause","sentence":"Everyone in the team contributed ideas to the project.","synonyms":["donate","give","add"],"antonyms":["withhold","take"],"evolution":"donate","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"conventional","pos":"adjective","category":"Character & Personality","meaning":"following what is traditional or normally done","sentence":"He had a fairly conventional upbringing in a small town.","synonyms":["traditional","standard","ordinary"],"antonyms":["unconventional","unusual","original"],"evolution":"orthodox","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"brusque","pos":"adjective","category":"Character & Personality","meaning":"quick and rude in manner or speech","sentence":"The doctor's brusque manner made the patient uncomfortable.","synonyms":["abrupt","curt","blunt"],"antonyms":["polite","courteous","gentle"],"evolution":"curt","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"burden","pos":"noun","category":"Feelings & Reactions","meaning":"a heavy load, or something difficult or worrying that you have to deal with","sentence":"Looking after three children alone was a heavy burden.","synonyms":["load","weight","responsibility"],"antonyms":["relief","help"],"evolution":"encumbrance","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"calamity","pos":"noun","category":"Conflict & Disapproval","meaning":"an event that causes great damage or suffering; a disaster","sentence":"The flood was a calamity for the entire village.","synonyms":["disaster","catastrophe","tragedy"],"antonyms":["blessing","triumph"],"evolution":"catastrophe","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"candidate","pos":"noun","category":"People & Roles","meaning":"a person who is being considered for a job, or who is competing in an election","sentence":"Three candidates applied for the manager's position.","synonyms":["applicant","contender","nominee"],"antonyms":["incumbent"],"evolution":"contender","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"careering","pos":"verb","category":"Actions & Behaviour","meaning":"moving quickly and in an uncontrolled way","sentence":"The runaway car was careering down the hill.","synonyms":["speeding","hurtling","rushing"],"antonyms":["crawling","creeping"],"evolution":"hurtling","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"coarse","pos":"adjective","category":"Appearance & Description","meaning":"rough in texture, or rude and lacking refinement","sentence":"The blanket was made from coarse wool.","synonyms":["rough","harsh","crude"],"antonyms":["smooth","fine","refined"],"evolution":"crude","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"coax","pos":"verb","category":"Actions & Behaviour","meaning":"to gently persuade someone to do something by being kind or patient","sentence":"She coaxed the nervous cat out from under the bed.","synonyms":["persuade","encourage","cajole"],"antonyms":["force","discourage"],"evolution":"cajole","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"combination","pos":"noun","category":"Size, Amount & Degree","meaning":"a mixture or set of things that are joined or used together","sentence":"The dish is a combination of sweet and spicy flavours.","synonyms":["mixture","blend","mix"],"antonyms":["separation","division"],"evolution":"amalgamation","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"commence","pos":"verb","category":"Time & Change","meaning":"to begin or start","sentence":"The ceremony will commence at noon.","synonyms":["begin","start","initiate"],"antonyms":["end","finish","conclude"],"evolution":"initiate","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"commit","pos":"verb","category":"Actions & Behaviour","meaning":"to do something wrong or illegal, or to promise to do something","sentence":"He committed a serious crime as a young man.","synonyms":["perform","carry out","pledge"],"antonyms":["refrain","abstain"],"evolution":"perpetrate","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"category","pos":"noun","category":"Size, Amount & Degree","meaning":"a group of things that share similar features","sentence":"Books in the shop are arranged by category.","synonyms":["class","group","type"],"antonyms":["individual item"],"evolution":"classification","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"cemetery","pos":"noun","category":"Places & Surroundings","meaning":"an area of land used for burying the dead","sentence":"The old cemetery was full of moss-covered headstones.","synonyms":["graveyard","burial ground"],"antonyms":[],"evolution":"necropolis","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"committee","pos":"noun","category":"People & Roles","meaning":"a group of people chosen to make decisions or organise something for a larger group","sentence":"The committee will meet next week to discuss the budget.","synonyms":["panel","board","council"],"antonyms":["individual"],"evolution":"panel","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"awkward","pos":"adjective","category":"Feelings & Reactions","meaning":"causing embarrassment or difficulty, or not graceful in movement","sentence":"There was an awkward silence after his joke fell flat.","synonyms":["uncomfortable","clumsy","embarrassing"],"antonyms":["comfortable","graceful","smooth"],"evolution":"ungainly","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"bargain","pos":"noun","category":"Money & Value","meaning":"something bought for less than its usual price, or an agreement between people","sentence":"She found a real bargain at the sale.","synonyms":["deal","discount","agreement"],"antonyms":["rip-off","overpayment"],"evolution":"transaction","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"bruise","pos":"noun","category":"Objects & Things","meaning":"a dark mark on the skin caused by an injury that does not break the skin","sentence":"He had a large bruise on his arm after the fall.","synonyms":["mark","contusion","injury"],"antonyms":[],"evolution":"contusion","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"avid","pos":"adjective","category":"Character & Personality","meaning":"very enthusiastic about something","sentence":"She is an avid reader who finishes a book every week.","synonyms":["enthusiastic","keen","eager"],"antonyms":["indifferent","apathetic"],"evolution":"zealous","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"avowed","pos":"adjective","category":"Character & Personality","meaning":"openly admitted or declared","sentence":"He is an avowed supporter of animal rights.","synonyms":["declared","admitted","professed"],"antonyms":["secret","denied"],"evolution":"professed","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"banish","pos":"verb","category":"Conflict & Disapproval","meaning":"to send someone away from a place as a punishment, or to get rid of something","sentence":"The king banished the traitor from the kingdom.","synonyms":["exile","expel","deport"],"antonyms":["welcome","admit","allow"],"evolution":"exile","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"barren","pos":"adjective","category":"Places & Surroundings","meaning":"(of land) too poor to produce many plants, or unable to have children","sentence":"The desert was barren and stretched for miles.","synonyms":["infertile","bare","unproductive"],"antonyms":["fertile","fruitful","lush"],"evolution":"infertile","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"beck","pos":"noun","category":"Nature & Weather","meaning":"a small stream (also used in 'at someone's beck and call', meaning ready to obey instantly)","sentence":"The old mill stood beside a gently flowing beck.","synonyms":["stream","brook"],"antonyms":[],"evolution":"rivulet","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"belligerent","pos":"adjective","category":"Character & Personality","meaning":"hostile and aggressive, or eager to start a fight or argument","sentence":"The belligerent customer shouted at the staff.","synonyms":["aggressive","hostile","combative"],"antonyms":["peaceful","friendly","amicable"],"evolution":"combative","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"bemused","pos":"adjective","category":"Feelings & Reactions","meaning":"confused and unable to understand something","sentence":"She gave a bemused look when she heard the strange request.","synonyms":["confused","puzzled","baffled"],"antonyms":["clear-headed","certain"],"evolution":"perplexed","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"besieged","pos":"verb","category":"Conflict & Disapproval","meaning":"surrounded by an army, or overwhelmed by many demands or requests","sentence":"The town was besieged by enemy forces for months.","synonyms":["surrounded","overwhelmed","beset"],"antonyms":["freed","relieved"],"evolution":"beset","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"bewildered","pos":"adjective","category":"Feelings & Reactions","meaning":"very confused, often because something is too complicated to understand","sentence":"The tourist looked bewildered by the confusing map.","synonyms":["confused","baffled","perplexed"],"antonyms":["clear","certain","assured"],"evolution":"disoriented","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"brief","pos":"adjective","category":"Time & Change","meaning":"lasting only a short time, or giving only the most important facts","sentence":"She gave a brief summary of the meeting.","synonyms":["short","concise","quick"],"antonyms":["lengthy","detailed","long"],"evolution":"concise","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"attached","pos":"adjective","category":"Relationships & Affection","meaning":"fond of someone or something, or physically connected to something","sentence":"She became very attached to the puppy.","synonyms":["fond","devoted","connected"],"antonyms":["detached","indifferent"],"evolution":"devoted","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"available","pos":"adjective","category":"Size, Amount & Degree","meaning":"able to be used, obtained, or reached","sentence":"Tickets are still available for tonight's show.","synonyms":["obtainable","accessible","free"],"antonyms":["unavailable","taken"],"evolution":"obtainable","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"average","pos":"adjective","category":"Size, Amount & Degree","meaning":"typical, usual, or calculated by adding amounts together and dividing by the number of amounts","sentence":"His grades were about average for the class.","synonyms":["typical","normal","standard"],"antonyms":["exceptional","extraordinary"],"evolution":"unremarkable","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"ample","pos":"adjective","category":"Size, Amount & Degree","meaning":"enough or more than enough; plentiful","sentence":"There was ample time to finish the test.","synonyms":["plenty of","abundant","sufficient"],"antonyms":["insufficient","scant","meagre"],"evolution":"abundant","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"antiquity","pos":"noun","category":"Time & Change","meaning":"ancient times, especially the period of Greek and Roman history","sentence":"The ruins date back to antiquity.","synonyms":["ancient times","the past"],"antonyms":["modernity"],"evolution":"ancientness","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"appeal","pos":"verb","category":"Actions & Behaviour","meaning":"to make a serious or urgent request, or to be attractive or interesting to someone","sentence":"The charity appealed for donations after the flood.","synonyms":["request","plea","attract"],"antonyms":["deter","repel"],"evolution":"entreaty","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"apprehensive","pos":"adjective","category":"Feelings & Reactions","meaning":"worried or afraid about something that might happen","sentence":"She felt apprehensive about her first day at the new job.","synonyms":["anxious","nervous","worried"],"antonyms":["confident","calm","relaxed"],"evolution":"uneasy","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"arduous","pos":"adjective","category":"Actions & Behaviour","meaning":"needing a lot of effort and energy; difficult and tiring","sentence":"The hikers faced an arduous climb to the summit.","synonyms":["difficult","strenuous","demanding"],"antonyms":["easy","effortless","simple"],"evolution":"strenuous","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"artful","pos":"adjective","category":"Honesty & Deception","meaning":"clever, especially in a way that involves deceiving people","sentence":"The artful thief escaped without anyone noticing.","synonyms":["cunning","skilful","crafty"],"antonyms":["clumsy","naive","honest"],"evolution":"cunning","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"assemble","pos":"verb","category":"Actions & Behaviour","meaning":"to gather together in one place, or to put the parts of something together","sentence":"The students assembled in the hall for the announcement.","synonyms":["gather","collect","construct"],"antonyms":["disperse","dismantle"],"evolution":"congregate","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"assiduous","pos":"adjective","category":"Character & Personality","meaning":"showing great care and effort, working hard and steadily","sentence":"She was assiduous in checking every detail of the report.","synonyms":["diligent","hardworking","meticulous"],"antonyms":["lazy","careless","negligent"],"evolution":"meticulous","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"asunder","pos":"adverb","category":"Size, Amount & Degree","meaning":"into separate pieces or parts; apart","sentence":"The old ship was torn asunder by the storm.","synonyms":["apart","in pieces","separated"],"antonyms":["together","whole"],"evolution":"fragmented","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"attempt","pos":"verb","category":"Actions & Behaviour","meaning":"to try to do something, especially something difficult","sentence":"She attempted to climb the mountain despite the bad weather.","synonyms":["try","endeavour","venture"],"antonyms":["abandon","give up"],"evolution":"endeavour","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"ancient","pos":"adjective","category":"Time & Change","meaning":"belonging to a time long ago in history; very old","sentence":"Ancient ruins were discovered beneath the city.","synonyms":["old","antique","historic"],"antonyms":["modern","new","recent"],"evolution":"archaic","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"apparent","pos":"adjective","category":"Appearance & Description","meaning":"easy to see or understand; seeming to be true based on what you can see","sentence":"It was apparent that something was wrong.","synonyms":["obvious","clear","evident"],"antonyms":["unclear","hidden","doubtful"],"evolution":"evident","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"appreciate","pos":"verb","category":"Feelings & Reactions","meaning":"to recognise the value of something, or to be grateful for something","sentence":"I really appreciate all your help this week.","synonyms":["value","be grateful for","recognise"],"antonyms":["disregard","ignore","undervalue"],"evolution":"esteem","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"admission","pos":"noun","category":"Permission & Rules","meaning":"permission to enter a place, or a statement admitting that something is true","sentence":"Admission to the museum is free on Sundays.","synonyms":["entry","entrance","confession"],"antonyms":["exclusion","denial"],"evolution":"confession","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"adopt","pos":"verb","category":"Actions & Behaviour","meaning":"to legally take another person's child and care for it as your own, or to start using something new","sentence":"They decided to adopt a child from the orphanage.","synonyms":["take in","embrace","foster"],"antonyms":["abandon","reject"],"evolution":"foster","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"advance","pos":"verb","category":"Actions & Behaviour","meaning":"to move forward, or to make progress in something","sentence":"Troops began to advance towards the border.","synonyms":["progress","move forward","develop"],"antonyms":["retreat","regress","withdraw"],"evolution":"progress","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"affable","pos":"adjective","category":"Character & Personality","meaning":"friendly and easy to talk to","sentence":"The affable host made everyone feel welcome.","synonyms":["friendly","pleasant","amiable"],"antonyms":["unfriendly","hostile","cold"],"evolution":"amiable","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"affectionate","pos":"adjective","category":"Relationships & Affection","meaning":"showing warm feelings of love or fondness","sentence":"The dog gave its owner an affectionate lick.","synonyms":["loving","warm","fond"],"antonyms":["cold","distant","unloving"],"evolution":"tender","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"aid","pos":"noun","category":"Actions & Behaviour","meaning":"help, especially in the form of money, food, or equipment given to people in need","sentence":"The charity sent emergency aid to the disaster zone.","synonyms":["help","assistance","support"],"antonyms":["hindrance","obstruction"],"evolution":"assistance","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"ally","pos":"noun","category":"People & Roles","meaning":"a country, group, or person that helps and supports another","sentence":"The two nations became close allies after the war.","synonyms":["supporter","partner","friend"],"antonyms":["enemy","opponent","rival"],"evolution":"confederate","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"altitude","pos":"noun","category":"Places & Surroundings","meaning":"the height of something above sea level","sentence":"The plane was flying at a high altitude.","synonyms":["height","elevation"],"antonyms":["depth"],"evolution":"elevation","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"ambition","pos":"noun","category":"Character & Personality","meaning":"a strong desire to achieve something, such as success or power","sentence":"Her ambition was to become a doctor.","synonyms":["aspiration","goal","drive"],"antonyms":["apathy","indifference"],"evolution":"aspiration","dateAdded":"2026-06-29","oxfordLevel":"B1"},{"word":"amount","pos":"noun","category":"Size, Amount & Degree","meaning":"a quantity of something, especially money","sentence":"A large amount of money was raised for charity.","synonyms":["quantity","sum","total"],"antonyms":[],"evolution":"quantity","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"achieve","pos":"verb","category":"Actions & Behaviour","meaning":"to succeed in doing something, especially after a lot of effort","sentence":"She worked hard to achieve her dream of becoming a vet.","synonyms":["accomplish","attain","fulfil"],"antonyms":["fail","lose"],"evolution":"accomplish","dateAdded":"2026-06-29","oxfordLevel":"A2"},{"word":"aggressive","pos":"adjective","category":"Character & Personality","meaning":"behaving in an angry or violent way towards others, or very forceful","sentence":"The dog became aggressive when strangers approached.","synonyms":["hostile","violent","forceful"],"antonyms":["passive","peaceful","gentle"],"evolution":"belligerent","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"amateur","pos":"adjective","category":"People & Roles","meaning":"doing an activity for enjoyment rather than as a profession; lacking professional skill","sentence":"He is an amateur photographer who only shoots on weekends.","synonyms":["non-professional","inexperienced"],"antonyms":["professional","expert"],"evolution":"novice","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"abhorrent","pos":"adjective","category":"Feelings & Reactions","meaning":"causing or deserving strong hatred or disgust","sentence":"Cruelty to animals is abhorrent to most people.","synonyms":["repugnant","detestable","loathsome"],"antonyms":["delightful","pleasing","admirable"],"evolution":"repugnant","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"abode","pos":"noun","category":"Places & Surroundings","meaning":"a place where someone lives; a home","sentence":"Welcome to my humble abode.","synonyms":["home","residence","dwelling"],"antonyms":[],"evolution":"residence","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"absence","pos":"noun","category":"Size, Amount & Degree","meaning":"the state of being away from a place, or the fact that something does not exist","sentence":"His absence from school worried his teachers.","synonyms":["non-attendance","lack"],"antonyms":["presence","attendance"],"evolution":"non-attendance","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"absurd","pos":"adjective","category":"Appearance & Description","meaning":"completely unreasonable or ridiculous; not sensible at all","sentence":"It seemed absurd to cancel the trip over a little rain.","synonyms":["ridiculous","ludicrous","preposterous"],"antonyms":["sensible","reasonable","logical"],"evolution":"ludicrous","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"abundance","pos":"noun","category":"Size, Amount & Degree","meaning":"a very large quantity of something","sentence":"The garden had an abundance of fresh vegetables.","synonyms":["plenty","profusion","wealth"],"antonyms":["scarcity","shortage","lack"],"evolution":"profusion","dateAdded":"2026-06-29","oxfordLevel":"C1"},{"word":"accuse","pos":"verb","category":"Conflict & Disapproval","meaning":"to say that someone has done something wrong or committed a crime","sentence":"She accused her brother of breaking the vase.","synonyms":["blame","charge","allege"],"antonyms":["absolve","defend","excuse"],"evolution":"allege","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"accustom","pos":"verb","category":"Actions & Behaviour","meaning":"to make yourself or someone else become familiar with something new","sentence":"It took him a while to accustom himself to the new routine.","synonyms":["adapt","adjust","familiarise"],"antonyms":["unsettle"],"evolution":"habituate","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"acquainted","pos":"adjective","category":"Relationships & Affection","meaning":"having met someone before, or having knowledge of something","sentence":"They became acquainted at a conference last year.","synonyms":["familiar","introduced","informed"],"antonyms":["unfamiliar","unacquainted"],"evolution":"familiar","dateAdded":"2026-06-29","oxfordLevel":"Beyond"},{"word":"acquire","pos":"verb","category":"Actions & Behaviour","meaning":"to get or obtain something, often through effort or skill","sentence":"She acquired excellent language skills while living abroad.","synonyms":["obtain","gain","get"],"antonyms":["lose","forfeit"],"evolution":"procure","dateAdded":"2026-06-29","oxfordLevel":"B2"},{"word":"adhere","pos":"verb","category":"Actions & Behaviour","meaning":"to stick firmly to a surface, or to follow a rule or belief closely","sentence":"All staff must adhere to the safety guidelines.","synonyms":["stick","follow","comply"],"antonyms":["violate","disregard","ignore"],"evolution":"comply","dateAdded":"2026-06-29","oxfordLevel":"C1"}]
+</script>
+<script>
+
+// ===== Wordling species + SVG renderer =====
+// 16 original "species", one per vocabulary category. Each is a simple round
+// creature body (consistent base shape across the whole species line, like a
+// shared body plan) with a category-coloured marking and a couple of
+// pre-set face variants for individuality. Deliberately simple/geometric so
+// it reads as its own thing rather than echoing any existing character design.
+
+var WORDLING_SPECIES = {
+  "Actions & Behaviour":      { name: "Zoomlet",   color: "#E8A658", dark: "#C77E32", mark: "comet" },
+  "Character & Personality":  { name: "Glimmer",   color: "#F6CD96", dark: "#D49A4A", mark: "spark" },
+  "Feelings & Reactions":     { name: "Ripplet",   color: "#7FB8D6", dark: "#4E89AC", mark: "wave" },
+  "Conflict & Disapproval":   { name: "Grumlet",   color: "#9A8FC9", dark: "#6C5FA0", mark: "bolt" },
+  "Size, Amount & Degree":    { name: "Lunabit",   color: "#C7C8D9", dark: "#8E90AC", mark: "moon" },
+  "Appearance & Description": { name: "Glasset",   color: "#C9A6E0", dark: "#9A6FBE", mark: "facet" },
+  "Time & Change":            { name: "Tickle",    color: "#E0B873", dark: "#B5894A", mark: "spiral" },
+  "Honesty & Deception":      { name: "Mimicle",   color: "#6E64A8", dark: "#4A4180", mark: "mask" },
+  "People & Roles":           { name: "Lantee",    color: "#F0967E", dark: "#CC6850", mark: "flame" },
+  "Places & Surroundings":    { name: "Mossling",  color: "#7DAE82", dark: "#52805A", mark: "leaf" },
+  "Objects & Things":         { name: "Gembit",    color: "#5FBCB0", dark: "#3A8E83", mark: "gem" },
+  "Permission & Rules":       { name: "Keyfin",    color: "#B98E5B", dark: "#8E6736", mark: "key" },
+  "Relationships & Affection":{ name: "Heartle",   color: "#E8909F", dark: "#C0606F", mark: "heart" },
+  "Nature & Weather":         { name: "Puffel",    color: "#9DC3E6", dark: "#6B97BD", mark: "cloud" },
+  "Food & Taste":             { name: "Berrit",    color: "#D6707A", dark: "#A8454F", mark: "berry" },
+  "Money & Value":            { name: "Coinly",    color: "#E8C158", dark: "#B8922F", mark: "coin" },
+};
+var DEFAULT_SPECIES = { name: "Glimmer", color: "#C7C0E0", dark: "#8E86B8", mark: "spark" };
+
+function getSpecies(category){
+  return WORDLING_SPECIES[category] || DEFAULT_SPECIES;
+}
+
+// face variants: each returns SVG for eyes+mouth, centred around (50,56) in a 100x100 viewbox
+var FACE_VARIANTS = [
+  function(c){ return '<circle cx="38" cy="54" r="5" fill="'+c+'"/><circle cx="62" cy="54" r="5" fill="'+c+'"/><path d="M40 68 Q50 76 60 68" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'; },
+  function(c){ return '<path d="M33 54 q5 -6 10 0" stroke="'+c+'" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M57 54 q5 -6 10 0" stroke="'+c+'" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="50" cy="70" r="4" fill="'+c+'"/>'; },
+  function(c){ return '<circle cx="38" cy="54" r="5.5" fill="'+c+'"/><circle cx="62" cy="54" r="5.5" fill="'+c+'"/><ellipse cx="50" cy="70" rx="9" ry="5" fill="'+c+'"/>'; },
+  function(c){ return '<circle cx="38" cy="55" r="4.5" fill="'+c+'"/><circle cx="62" cy="55" r="4.5" fill="'+c+'"/><path d="M42 70 Q50 64 58 70" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'; },
+];
+
+// marking shapes drawn on the creature's belly/forehead patch, in a small
+// local coordinate space centred at (50,50)
+var MARKINGS = {
+  comet: '<path d="M50 36 L58 50 L50 64 L42 50 Z M50 36 L62 30 M50 64 L62 70" fill="none" />'
+         + '<path d="M50 36 L58 50 L50 64 L42 50 Z" fill="currentMark"/>'
+         + '<path d="M50 64 L66 76" stroke="currentMark" stroke-width="3" stroke-linecap="round" fill="none"/>',
+  spark: '<path d="M50 34 L55 47 L68 50 L55 53 L50 66 L45 53 L32 50 L45 47 Z" fill="currentMark"/>',
+  wave:  '<path d="M30 50 Q40 38 50 50 T70 50" stroke="currentMark" stroke-width="5" fill="none" stroke-linecap="round"/>'
+         + '<path d="M30 60 Q40 48 50 60 T70 60" stroke="currentMark" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.6"/>',
+  bolt:  '<path d="M55 32 L42 54 L50 54 L45 70 L60 48 L51 48 Z" fill="currentMark"/>',
+  moon:  '<path d="M60 32 A20 20 0 1 0 60 72 A14 14 0 1 1 60 32 Z" fill="currentMark"/>',
+  facet: '<path d="M50 32 L66 50 L50 68 L34 50 Z M50 32 L50 68 M34 50 L66 50" stroke="currentMark" stroke-width="2" fill="none"/>'
+         + '<path d="M50 32 L66 50 L50 68 L34 50 Z" fill="currentMark" opacity="0.5"/>',
+  spiral:'<path d="M50 50 m0 -16 a16 16 0 1 1 -11.3 27.3 a10 10 0 1 1 7.5 -18 a6 6 0 1 1 -4.5 10.8" stroke="currentMark" stroke-width="4" fill="none" stroke-linecap="round"/>',
+  mask:  '<path d="M34 44 Q50 32 66 44 L66 54 Q50 64 34 54 Z" fill="currentMark"/><circle cx="42" cy="48" r="2.4" fill="white" opacity="0.8"/><circle cx="58" cy="48" r="2.4" fill="white" opacity="0.8"/>',
+  flame: '<path d="M50 32 Q60 44 56 54 Q66 50 62 62 Q58 70 50 70 Q42 70 38 62 Q34 50 44 54 Q40 44 50 32 Z" fill="currentMark"/>',
+  leaf:  '<path d="M50 30 Q70 38 68 56 Q66 70 50 72 Q34 70 32 56 Q30 38 50 30 Z" fill="currentMark"/><path d="M50 33 L50 69" stroke="white" stroke-width="1.8" opacity="0.55"/>',
+  gem:   '<path d="M50 30 L67 44 L60 70 L40 70 L33 44 Z" fill="currentMark"/><path d="M50 30 L50 70 M33 44 L67 44" stroke="white" stroke-width="1.2" opacity="0.4"/>',
+  key:   '<circle cx="44" cy="42" r="9" fill="currentMark"/><rect x="42" y="48" width="5" height="24" fill="currentMark"/><rect x="42" y="58" width="11" height="5" fill="currentMark"/><rect x="42" y="66" width="9" height="5" fill="currentMark"/>',
+  heart: '<path d="M50 66 C32 52 32 36 44 36 C48 36 50 40 50 40 C50 40 52 36 56 36 C68 36 68 52 50 66 Z" fill="currentMark"/>',
+  cloud: '<ellipse cx="42" cy="54" rx="11" ry="9" fill="currentMark"/><ellipse cx="56" cy="50" rx="14" ry="11" fill="currentMark"/><ellipse cx="68" cy="56" rx="9" ry="7" fill="currentMark"/>',
+  berry: '<circle cx="42" cy="56" r="9" fill="currentMark"/><circle cx="58" cy="56" r="9" fill="currentMark"/><circle cx="50" cy="44" r="9" fill="currentMark"/><path d="M50 30 L50 38" stroke="#4A7C59" stroke-width="3" stroke-linecap="round"/>',
+  coin:  '<circle cx="50" cy="50" r="16" fill="none" stroke="currentMark" stroke-width="4"/><text x="50" y="56" font-size="16" text-anchor="middle" fill="currentMark" font-family="Georgia, serif" font-weight="bold">W</text>',
+};
+
+// Render a Wordling as an SVG string. seed picks the face variant deterministically per word.
+// evolved=true gives the creature a glowing aura ring and sparkle accents to show it has
+// leveled up through repeated correct answers.
+function renderWordlingSVG(category, seed, evolved){
+  var sp = getSpecies(category);
+  var face = FACE_VARIANTS[(seed||0) % FACE_VARIANTS.length](sp.dark);
+  var markingSvg = (MARKINGS[sp.mark] || MARKINGS.spark).replace(/currentMark/g, sp.dark);
+  var auraRing = evolved
+    ? '<circle cx="50" cy="52" r="40" fill="none" stroke="' + sp.color + '" stroke-width="2.5" opacity="0.55"/>' +
+      '<circle cx="50" cy="52" r="44" fill="none" stroke="#FFC857" stroke-width="1.5" opacity="0.4"/>'
+    : '';
+  var sparkles = evolved
+    ? '<path d="M18 24 L20 29 L25 30 L20 31 L18 36 L16 31 L11 30 L16 29 Z" fill="#FFC857" opacity="0.9"/>' +
+      '<path d="M80 32 L81.5 35.5 L85 37 L81.5 38.5 L80 42 L78.5 38.5 L75 37 L78.5 35.5 Z" fill="#FFC857" opacity="0.75"/>' +
+      '<path d="M76 76 L77 78.5 L79.5 79.5 L77 80.5 L76 83 L75 80.5 L72.5 79.5 L75 78.5 Z" fill="#FFC857" opacity="0.6"/>'
+    : '';
+  return (
+    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+      '<ellipse cx="50" cy="88" rx="26" ry="6" fill="black" opacity="0.12"/>' +
+      auraRing +
+      '<circle cx="50" cy="52" r="34" fill="' + sp.color + '"/>' +
+      '<circle cx="50" cy="52" r="34" fill="none" stroke="' + sp.dark + '" stroke-width="2" opacity="0.35"/>' +
+      '<g opacity="0.85">' + markingSvg + '</g>' +
+      face +
+      '<ellipse cx="38" cy="42" rx="6" ry="4" fill="white" opacity="0.35"/>' +
+      sparkles +
+    '</svg>'
+  );
+}
+
+
+
+(function(){
+  'use strict';
+
+  // ---------- quest system styling (injected so this file is drop-in) ----------
+  (function injectQuestStyles(){
+    var style = document.createElement('style');
+    style.textContent =
+      '.quest-card{background:linear-gradient(165deg,rgba(155,95,224,0.22),rgba(155,95,224,0.06));' +
+        'border:1px solid rgba(200,160,248,0.35);border-radius:18px;padding:14px 16px;margin-bottom:16px;}' +
+      '.quest-card-title{font-family:var(--display);font-weight:800;font-size:14px;color:#E4CFFB;margin-bottom:10px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;gap:8px;' +
+        'touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;}' +
+      '.qe-row{margin-bottom:10px;}' +
+      '.qe-row label{display:block;font-family:var(--display);font-weight:700;font-size:11px;color:var(--cream-dim);margin-bottom:4px;}' +
+      '.qe-row input,.qe-row select{width:100%;font-family:var(--body);font-size:13.5px;padding:8px 10px;border-radius:10px;' +
+        'border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:var(--cream);}' +
+      '.qe-hint{font-size:10.5px;color:var(--cream-dim);margin:6px 0 10px;line-height:1.4;}' +
+      '.qe-actions{display:flex;gap:8px;}' +
+      '.qe-save-btn,.qe-cancel-btn{font-family:var(--display);font-weight:700;font-size:12.5px;border-radius:12px;padding:8px 16px;cursor:pointer;border:none;}' +
+      '.qe-save-btn{background:var(--gold);color:var(--bg-deep);}' +
+      '.qe-cancel-btn{background:rgba(255,255,255,0.1);color:var(--cream);}' +
+      '.quest-line{margin-bottom:10px;}' +
+      '.quest-line-top{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--cream);margin-bottom:5px;}' +
+      '.quest-track{height:9px;background:rgba(0,0,0,0.3);border-radius:6px;overflow:hidden;}' +
+      '.quest-fill{height:100%;background:linear-gradient(90deg,#C8A0F8,#FFD700);border-radius:6px;transition:width .4s ease;}' +
+      '.quest-sub{font-size:10.5px;color:var(--cream-dim);margin-top:4px;}' +
+      '.quest-reward-row{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px dashed rgba(200,160,248,0.3);}' +
+      '.quest-reward-svg{width:34px;height:34px;flex:0 0 auto;}' +
+      '.quest-reward-svg.silhouette{filter:grayscale(1) brightness(0.55);opacity:.55;}' +
+      '.quest-reward-text{font-size:11.5px;color:var(--cream-dim);line-height:1.35;}' +
+      '.quest-reward-row.done .quest-reward-text{color:#F6E7BE;}' +
+      '.quest-reward-row.done{border-top-color:rgba(255,215,0,0.45);}' +
+      '.hatch-overlay.mythic-overlay .hatch-card{filter:drop-shadow(0 0 22px rgba(200,160,248,0.55));}' +
+      '.hatch-overlay.mythic-overlay .hatch-label{color:#E4CFFB;}' +
+      '.mythic-showcase{display:none;gap:10px;flex-wrap:wrap;justify-content:center;margin:14px 0;padding:12px;' +
+        'background:linear-gradient(165deg,rgba(155,95,224,0.2),rgba(155,95,224,0.05));border:1px solid rgba(200,160,248,0.35);border-radius:16px;}' +
+      '.mythic-showcase.has-mythics{display:flex;}' +
+      '.mythic-slot{width:88px;text-align:center;}' +
+      '.mythic-slot .slot-svg{width:56px;height:56px;margin:0 auto 4px;}' +
+      '.mythic-slot .slot-name{font-family:var(--display);font-size:10.5px;font-weight:800;color:#E4CFFB;}' +
+      '.mythic-slot .slot-tag{font-size:8.5px;color:var(--cream-dim);margin-top:2px;}' +
+      '.mini-chip.mythic-chip{background:rgba(155,95,224,0.22);color:#E4CFFB;}' +
+      '.mini-chip.mythic-chip b{color:#F6E7BE;}' +
+      '.nickname-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;padding:10px 14px;' +
+        'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:14px;}' +
+      '.nickname-bar .nb-greeting{font-family:var(--display);font-weight:800;font-size:13.5px;color:var(--cream);}' +
+      '.nickname-bar .nb-change{background:none;border:none;color:var(--cream-dim);font-family:var(--display);font-weight:700;' +
+        'font-size:11px;cursor:pointer;text-decoration:underline;padding:2px;}' +
+      '.nickname-modal-backdrop{position:fixed;inset:0;background:rgba(10,6,20,0.72);display:flex;align-items:center;' +
+        'justify-content:center;z-index:500;padding:20px;}' +
+      '.nickname-modal{background:var(--bg-card,#241a3a);border:1px solid rgba(200,160,248,0.35);border-radius:20px;' +
+        'padding:22px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);}' +
+      '.nickname-modal h3{font-family:var(--display);font-weight:800;font-size:17px;color:#E4CFFB;margin:0 0 6px;}' +
+      '.nickname-modal p{font-size:12.5px;color:var(--cream-dim);margin:0 0 14px;line-height:1.4;}' +
+      '.nickname-modal input{width:100%;box-sizing:border-box;font-family:var(--body);font-size:15px;padding:11px 12px;' +
+        'border-radius:12px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:var(--cream);' +
+        'text-align:center;margin-bottom:6px;}' +
+      '.nickname-modal .nm-err{font-size:11px;color:#FF9B9B;min-height:14px;margin-bottom:8px;}' +
+      '.nickname-modal .nm-actions{display:flex;gap:8px;justify-content:center;margin-top:6px;}' +
+      '.nickname-modal .nm-save{background:var(--gold);color:var(--bg-deep);border:none;font-family:var(--display);' +
+        'font-weight:800;font-size:13.5px;border-radius:12px;padding:10px 20px;cursor:pointer;}' +
+      '.nickname-modal .nm-skip{background:none;border:none;color:var(--cream-dim);font-family:var(--display);' +
+        'font-weight:700;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:6px;}';
+    document.head.appendChild(style);
+  })();
+
+  // ── AI SENTENCE-CHECK CONFIG ────────────────────────────────────────────────
+  // Exactly one of these should be set. Whichever is active determines how the
+  // "write a sentence" feature checks the player's answer.
+  //
+  //  AI_PROXY_URL  — set this (e.g. '/api/check-sentence') once the game is
+  //                  hosted with the serverless proxy from the deploy/ folder.
+  //                  The real API key lives only on the server; nobody who
+  //                  plays the game can ever see it. This is the safe option
+  //                  for anything shared or hosted publicly.
+  //
+  //  LOCAL_API_KEY — paste a real Anthropic API key here ONLY if this exact
+  //                  file stays private (not shared with friends, not
+  //                  uploaded anywhere). Anyone who has this file can read
+  //                  the key via "View Page Source".
+  var AI_PROXY_URL = "/api/check-sentence";
+  var LOCAL_API_KEY = 'PASTE_YOUR_ANTHROPIC_API_KEY_HERE';
+
+  function buildSentenceCheckPrompt(word, txt){
+    return 'You are a warm encouraging English teacher helping an 11-year-old Chinese native speaker prepare for top London independent school exams. She just spelled "' + word.word + '" correctly.\n\n' +
+      'Word: "' + word.word + '" (' + word.pos + ')\nMeaning: ' + word.meaning + '\n\n' +
+      'Her sentence: "' + txt + '"\n\n' +
+      'Check if she understands the PRECISE meaning. For Chinese native speakers: English words carry specific nuance that Chinese equivalents do not. Does her sentence capture that?\n\n' +
+      'If good: start with "\u2705" and praise in 2 sentences.\n' +
+      'If not quite: start with "\uD83D\uDCAD" and give ONE specific kind hint. Be warm and brief.';
+  }
+
+  var BASE_VOCAB = JSON.parse(document.getElementById('vocab-data').textContent);
+  var ALL_CATEGORIES = Object.keys(WORDLING_SPECIES);
+
+  // user-added words live only in memory for this session (see add-word screen)
+  var customWords = [];
+  function VOCAB(){ return BASE_VOCAB.concat(customWords); }
+
+  var STARS_PER_EGG = 10;
+  var HINT_COST = 1;
+  var EVOLVE_AT = 3; // correct answers on the same word before it evolves
+  var STARS_CHOICE = 1;   // stars per correct multiple-choice answer
+  var STARS_SPELL = 2;    // stars per correct spelling
+  var STARS_BRAVE = 1;    // stars for attempting spelling/writing even if wrong
+  var STARS_SENTENCE = 3; // stars for AI-approved sentence writing
+
+  var SAVE_KEY = 'wordlings_progress_v1';
+
+  var DEFAULT_STATS = {
+    hatched: {},
+    bestStreak: 0,
+    totalAnswered: 0,
+    totalCorrect: 0,
+    stars: 0,
+    quests: [],
+    mythics: [],
+    modePlays: {},
+    pendingWords: [],
+    questSettings: { wordTarget: null, challengeMode: null, challengeTarget: null }, // null = use the auto default
+    nickname: null,
+  };
+
+  // ── QUEST & MYTHIC SYSTEM ──────────────────────────────────────────────────
+  var MODES_LIST = ['spelling','define','synonym','antonym','cloze','oddonout','wordfamily'];
+  var MODE_LABELS = {spelling:'Spelling Launch 🚀',define:'Meaning Match 🔍',synonym:'Twin Words ✨',antonym:'Opposite Day 🌗',cloze:'Fill the Gap 🧩',oddonout:'Odd One Out 🔎',wordfamily:'Word Family 🌿'};
+  var DEFAULT_WORD_TARGET = 10;       // "add N new words this week" — a parent can override this
+  var DEFAULT_CHALLENGE_TARGET = 3;   // "play mode X N times this week"
+
+  function getWeekKey(){
+    var d=new Date();
+    var jan1=new Date(d.getFullYear(),0,1);
+    var wk=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+    return d.getFullYear()+'-W'+String(wk).padStart(2,'0');
+  }
+
+  function getLeastPlayedMode(){
+    var counts={};
+    MODES_LIST.forEach(function(m){counts[m]=0;});
+    if(stats.modePlays) Object.keys(stats.modePlays).forEach(function(m){if(counts.hasOwnProperty(m))counts[m]=stats.modePlays[m];});
+    return MODES_LIST.reduce(function(a,b){return counts[a]<=counts[b]?a:b;});
+  }
+
+  // Builds a fresh quest for a new week from the parent's saved settings
+  // (stats.questSettings), falling back to sensible auto defaults for
+  // anything left unset.
+  function buildQuestForWeek(key){
+    var qs = stats.questSettings || {};
+    var wordTarget = qs.wordTarget || DEFAULT_WORD_TARGET;
+    var challengeMode = (qs.challengeMode && MODES_LIST.indexOf(qs.challengeMode) > -1) ? qs.challengeMode : getLeastPlayedMode();
+    var challengeTarget = qs.challengeTarget || DEFAULT_CHALLENGE_TARGET;
+    return {
+      weekKey:key,
+      wordQuest:{target:wordTarget,progress:0,done:false},
+      challengeQuest:{mode:challengeMode,target:challengeTarget,progress:0,done:false},
+      bothDone:false,
+      mythicSeed:Math.floor(Math.random()*1000)+1
+    };
+  }
+
+  function ensureWeeklyQuest(){
+    if(!stats.quests)stats.quests=[];
+    if(!stats.mythics)stats.mythics=[];
+    if(!stats.modePlays)stats.modePlays={};
+    if(!stats.questSettings)stats.questSettings={wordTarget:null,challengeMode:null,challengeTarget:null};
+    var key=getWeekKey();
+    var ex=stats.quests.filter(function(q){return q.weekKey===key;})[0];
+    if(ex)return ex;
+    var q = buildQuestForWeek(key);
+    stats.quests.push(q);
+    saveStats();
+    return q;
+  }
+
+  function getCurrentQuest(){
+    if(!stats.quests)return null;
+    var key=getWeekKey();
+    return stats.quests.filter(function(q){return q.weekKey===key;})[0]||null;
+  }
+
+  // type: 'addword' (the player successfully added a new word) or 'mode' (a game
+  // round in a specific mode was completed — val is that mode's key).
+  function updateQuestProgress(type,val){
+    var q=getCurrentQuest();if(!q)return false;
+    if(type==='addword'&&!q.wordQuest.done){
+      q.wordQuest.progress=Math.min(q.wordQuest.target,q.wordQuest.progress+1);
+      if(q.wordQuest.progress>=q.wordQuest.target)q.wordQuest.done=true;
+    }
+    if(type==='mode'&&!q.challengeQuest.done&&val===q.challengeQuest.mode){
+      q.challengeQuest.progress=Math.min(q.challengeQuest.target,q.challengeQuest.progress+1);
+      if(q.challengeQuest.progress>=q.challengeQuest.target)q.challengeQuest.done=true;
+    }
+    var wasBoth=q.bothDone;
+    if(q.wordQuest.done&&q.challengeQuest.done&&!q.bothDone)q.bothDone=true;
+    saveStats();
+    return q.bothDone&&!wasBoth;
+  }
+
+  function mythicSVG(seed){
+    var s=seed||1;
+    var uid='m'+s;
+    var face=s%2===0
+      ?'<circle cx="38" cy="54" r="5.5" fill="#4A1F80"/><circle cx="62" cy="54" r="5.5" fill="#4A1F80"/><path d="M36 50 L40 54 M60 50 L64 54" stroke="#4A1F80" stroke-width="2.5" stroke-linecap="round"/><path d="M40 68 Q50 74 60 68" stroke="#4A1F80" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      :'<path d="M33 51 L41 55" stroke="#4A1F80" stroke-width="3" stroke-linecap="round"/><path d="M57 51 L65 55" stroke="#4A1F80" stroke-width="3" stroke-linecap="round"/><ellipse cx="50" cy="70" rx="9" ry="5" fill="#4A1F80"/>';
+    var sx=16+(s%8),sy=22+(s%6),s2x=78+(s%5),s2y=18+(s%8);
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'
+      +'<defs><radialGradient id="bg'+uid+'" cx="45%" cy="40%" r="60%"><stop offset="0%" stop-color="#C8A0F8"/><stop offset="55%" stop-color="#9B5FE0"/><stop offset="100%" stop-color="#6B35B8"/></radialGradient>'
+      +'<radialGradient id="sh'+uid+'" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#FFD700" stop-opacity="0.35"/><stop offset="100%" stop-color="#C8A0F8" stop-opacity="0"/></radialGradient></defs>'
+      +'<ellipse cx="50" cy="88" rx="26" ry="6" fill="black" opacity=".15"/>'
+      +'<circle cx="50" cy="52" r="43" fill="none" stroke="#FFD700" stroke-width="1.2" opacity=".5" stroke-dasharray="4 3"/>'
+      +'<circle cx="50" cy="52" r="40" fill="none" stroke="#C8A0F8" stroke-width="2" opacity=".45"/>'
+      +'<circle cx="50" cy="52" r="34" fill="url(#bg'+uid+')"/>'
+      +'<circle cx="50" cy="52" r="34" fill="url(#sh'+uid+')"/>'
+      +'<circle cx="50" cy="52" r="34" fill="none" stroke="#4A1F80" stroke-width="2" opacity=".4"/>'
+      +'<path d="M56 30 L43 53 L51 53 L44 74 L62 47 L53 47 Z" fill="#FFD700" opacity=".9"/>'
+      +face
+      +'<ellipse cx="38" cy="42" rx="6" ry="4" fill="white" opacity=".35"/>'
+      +'<path d="M'+sx+' '+sy+' L'+(sx+2)+' '+(sy+5)+' L'+(sx+7)+' '+(sy+6)+' L'+(sx+2)+' '+(sy+7)+' L'+sx+' '+(sy+12)+' L'+(sx-2)+' '+(sy+7)+' L'+(sx-7)+' '+(sy+6)+' L'+(sx-2)+' '+(sy+5)+' Z" fill="#FFD700" opacity=".95"/>'
+      +'<path d="M'+s2x+' '+s2y+' L'+(s2x+1.5)+' '+(s2y+3.5)+' L'+(s2x+4)+' '+(s2y+4)+' L'+(s2x+1.5)+' '+(s2y+4.5)+' L'+s2x+' '+(s2y+8)+' L'+(s2x-1.5)+' '+(s2y+4.5)+' L'+(s2x-4)+' '+(s2y+4)+' L'+(s2x-1.5)+' '+(s2y+3.5)+' Z" fill="#FFD700" opacity=".8"/>'
+      +'</svg>';
+  }
+
+  var MYTHIC_PREFIXES = ['Star','Nova','Lumi','Aur','Cele','Vel','Astra','Glim','Nebu','Sola'];
+  var MYTHIC_SUFFIXES = ['wisp','ora','stelle','light','shade','yra','fable','glow','wing','myst'];
+  function mythicNameForSeed(seed){
+    var s = seed || 1;
+    return MYTHIC_PREFIXES[s % MYTHIC_PREFIXES.length] + MYTHIC_SUFFIXES[Math.floor(s/7) % MYTHIC_SUFFIXES.length];
+  }
+
+  // Called whenever a quest condition advances; if it just pushed a quest's
+  // week over the finish line, mint the one-off Mythic Wordling reward for
+  // that week and queue it into the hatch-celebration overlay.
+  function queueMythicReward(){
+    var q = getCurrentQuest();
+    if (!q) return;
+    var already = stats.mythics.some(function(m){ return m.weekKey === q.weekKey; });
+    if (already) return;
+    var mythic = {
+      weekKey: q.weekKey,
+      seed: q.mythicSeed,
+      name: mythicNameForSeed(q.mythicSeed),
+      earnedDate: new Date().toISOString().slice(0,10)
+    };
+    stats.mythics.push(mythic);
+    saveStats();
+    pendingHatches.push({ type: 'mythic', entry: mythic });
+  }
+
+  function loadStats(){
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATS));
+      var saved = JSON.parse(raw);
+      // merge with defaults so new fields added in future versions don't break saves
+      return Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATS)), saved);
+    } catch(e){
+      return JSON.parse(JSON.stringify(DEFAULT_STATS));
+    }
+  }
+
+  function saveStats(){
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(stats));
+    } catch(e){ /* storage full or blocked — fail silently */ }
+  }
+
+  var stats = loadStats();
+  ensureWeeklyQuest();
+
+  // ---------- helpers ----------
+  function shuffle(arr){
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function pick(arr, n){ return shuffle(arr).slice(0, n); }
+  function pickOne(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function normalise(s){ return (s||'').toLowerCase().trim().replace(/[^a-z]/g,''); }
+  function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function wordKey(w){ return w.word.toLowerCase() + '|' + w.pos; }
+  function seedFor(w){
+    var s = wordKey(w);
+    var h = 0;
+    for (var i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+
+  function findWordSpanInSentence(word, sentence){
+    if (!sentence) return null;
+    var w = normalise(word);
+    if (!w) return null;
+    var exactRe = new RegExp('\\b' + w + '\\b', 'i');
+    var exactMatch = sentence.match(exactRe);
+    if (exactMatch) return exactMatch[0];
+    var stem = w.length > 5 ? w.slice(0, Math.max(4, w.length - 2)) : w;
+    var stemRe = new RegExp('\\b[A-Za-z]*' + stem + '[A-Za-z]*\\b', 'i');
+    var m = sentence.match(stemRe);
+    return m ? m[0] : null;
+  }
+  function makeBlankSentence(word, sentence){
+    var found = findWordSpanInSentence(word, sentence);
+    if (!found) return null;
+    var idx = sentence.toLowerCase().indexOf(found.toLowerCase());
+    if (idx === -1) return null;
+    var blank = '<span class="blank">&nbsp;</span>';
+    return sentence.slice(0, idx) + blank + sentence.slice(idx + found.length);
+  }
+
+  // ---------- starfield ----------
+  (function buildStarfield(){
+    var field = document.getElementById('starfield');
+    var html = '';
+    for (var i = 0; i < 55; i++){
+      var top = Math.random()*100, left = Math.random()*100;
+      var delay = (Math.random()*3).toFixed(2);
+      var size = (Math.random()*2 + 1.5).toFixed(1);
+      html += '<div class="twinkle" style="top:' + top + '%;left:' + left + '%;animation-delay:' + delay + 's;width:' + size + 'px;height:' + size + 'px;"></div>';
+    }
+    field.innerHTML = html;
+  })();
+
+  // ---------- DOM refs ----------
+  var screens = {
+    mode: document.getElementById('mode-select-screen'),
+    question: document.getElementById('question-screen'),
+    results: document.getElementById('results-screen'),
+    album: document.getElementById('album-screen'),
+    addword: document.getElementById('addword-screen'),
+  };
+  function showScreen(name){
+    Object.keys(screens).forEach(function(k){ screens[k].classList.remove('active'); });
+    screens[name].classList.add('active');
+  }
+
+  var starTotalEl = document.getElementById('star-total');
+  var eggFillEl = document.getElementById('egg-fill');
+  var eggNoteEl = document.getElementById('egg-note');
+  var hatchedCountEl = document.getElementById('hatched-count');
+  var bestStreakEl = document.getElementById('best-streak');
+  var accuracyPctEl = document.getElementById('accuracy-pct');
+
+  var progressFill = document.getElementById('progress-fill');
+  var qCurrentEl = document.getElementById('q-current');
+  var qTotalEl = document.getElementById('q-total');
+  var qEyebrow = document.getElementById('q-eyebrow');
+  var qPrompt = document.getElementById('q-prompt');
+  var answerArea = document.getElementById('answer-area');
+  var feedbackStrip = document.getElementById('feedback-strip');
+  var fbWord = document.getElementById('fb-word');
+  var fbText = document.getElementById('fb-text');
+  var nextBtn = document.getElementById('next-btn');
+  var starBurst = document.getElementById('star-burst');
+  var hintBtn = document.getElementById('hint-btn');
+  var hintReveal = document.getElementById('hint-reveal');
+
+  var hatchOverlay = document.getElementById('hatch-overlay');
+  var hatchLabelEl = document.getElementById('hatch-label');
+  var hatchSvgWrap = document.getElementById('hatch-svg-wrap');
+  var hatchName = document.getElementById('hatch-name');
+  var hatchDesc = document.getElementById('hatch-desc');
+
+  // ---------- session state ----------
+  var session = null;
+  var pendingHatches = [];
+
+  var MODE_META = {
+    spelling:   { label: 'Spelling Launch', icon:'🚀', eyebrow: 'Spell the word', size: 12 },
+    define:     { label: 'Meaning Match', icon:'🔍', eyebrow: 'Choose the meaning', size: 12 },
+    synonym:    { label: 'Twin Words', icon:'✨', eyebrow: 'Find the closest match', size: 12 },
+    antonym:    { label: 'Opposite Day', icon:'🌗', eyebrow: 'Find the opposite', size: 10 },
+    cloze:      { label: 'Fill the Gap', icon:'🧩', eyebrow: 'Complete the sentence', size: 10 },
+    oddonout:   { label: 'Odd One Out', icon:'🔎', eyebrow: 'Which word does not belong?', size: 10 },
+    wordfamily: { label: 'Word Family', icon:'🌿', eyebrow: 'Group the related words', size: 8 },
+    mixed:      { label: 'Big Quest', icon:'🌟', eyebrow: 'Mixed quest', size: 20 },
+  };
+
+  // ---------- question builders ----------
+  function buildSpellingQ(w){ return { type:'spelling', word:w, prompt: w.meaning, pos: w.pos }; }
+  function buildDefineQ(w, pool){
+    var distractors = pick(pool.filter(function(x){return x.word!==w.word;}), 3).map(function(x){return x.meaning;});
+    var options = shuffle([w.meaning].concat(distractors));
+    return { type:'choice', word:w, prompt: 'What does <span class="target-word">' + w.word + '</span> mean?', options: options, answer: w.meaning, sub: w.pos };
+  }
+  function buildSynonymQ(w, pool){
+    if (!w.synonyms.length) return null;
+    var correct = pickOne(w.synonyms);
+    var distractors = pick(pool.filter(function(x){return x.word!==w.word;}), 3).map(function(x){ return pickOne(x.synonyms.length? x.synonyms : [x.meaning.split(' ').slice(0,2).join(' ')]); });
+    var options = shuffle([correct].concat(distractors));
+    return { type:'choice', word:w, prompt: 'Which word is closest in meaning to <span class="target-word">' + w.word + '</span>?', options: options, answer: correct, sub: w.pos };
+  }
+  function buildAntonymQ(w, pool){
+    if (!w.antonyms.length) return null;
+    var correct = pickOne(w.antonyms);
+    var apool = pool.filter(function(x){return x.antonyms.length && x.word!==w.word;});
+    var distractors = pick(apool, 3).map(function(x){ return pickOne(x.antonyms); });
+    if (distractors.length < 3){
+      var extra = pick(w.synonyms.length? w.synonyms : [w.meaning], 3 - distractors.length);
+      distractors = distractors.concat(extra);
+    }
+    var options = shuffle([correct].concat(distractors));
+    return { type:'choice', word:w, prompt: 'Which word means the <b>opposite</b> of <span class="target-word">' + w.word + '</span>?', options: options, answer: correct, sub: w.pos };
+  }
+  function buildClozeQ(w, pool){
+    var blanked = makeBlankSentence(w.word, w.sentence);
+    if (!blanked) return null;
+    var distractors = pick(pool.filter(function(x){return x.word!==w.word && x.pos===w.pos;}), 3).map(function(x){return x.word;});
+    if (distractors.length < 3){
+      distractors = pick(pool.filter(function(x){return x.word!==w.word;}), 3).map(function(x){return x.word;});
+    }
+    var options = shuffle([w.word].concat(distractors));
+    return { type:'choice', word:w, prompt: blanked, options: options, answer: w.word, sub: w.meaning, isCloze:true };
+  }
+
+  // ---------- Odd One Out builder ----------
+  // 4 words shown: 3 from the same category, 1 from a different category.
+  // Player picks the one that doesn't belong.
+  function buildOddOneOutQ(targetWord, fullPool){
+    var cat = targetWord.category;
+    var sameCategory = fullPool.filter(function(w){ return w.category === cat && w.word !== targetWord.word; });
+    if (sameCategory.length < 2) return null;
+    var companions = pick(sameCategory, 2); // 3 words in the "correct" group including target
+    
+    // pick the odd one out from a DIFFERENT category
+    var diffCategory = fullPool.filter(function(w){ return w.category !== cat; });
+    if (!diffCategory.length) return null;
+    var oddOne = pickOne(diffCategory);
+    
+    var options = shuffle([targetWord, companions[0], companions[1], oddOne]);
+    var correctAnswer = oddOne.word;
+    
+    return {
+      type: 'choice',
+      word: oddOne, // the "word we're teaching" is the odd one out
+      prompt: 'Which word does <b>not</b> belong with the others?',
+      options: options.map(function(o){ return o.word; }),
+      answer: correctAnswer,
+      sub: 'The other three all belong to: ' + cat,
+      isOddOneOut: true,
+      groupCategory: cat,
+      groupWords: [targetWord.word, companions[0].word, companions[1].word],
+    };
+  }
+
+  function buildOddOneOutQuestions(count, fullPool){
+    var pool = shuffle(fullPool.filter(function(w){ return w.category; }));
+    var qs = [];
+    for (var i=0; i<pool.length && qs.length<count; i++){
+      var q = buildOddOneOutQ(pool[i], fullPool);
+      if (q) qs.push(q);
+    }
+    return qs;
+  }
+
+  // ---------- Word Family builder ----------
+  // 6 words shown: 3 from category A, 3 from category B.
+  // Player picks the 3 that belong to the target category.
+  function buildWordFamilyQ(fullPool){
+    var cats = {};
+    fullPool.forEach(function(w){
+      if (!cats[w.category]) cats[w.category] = [];
+      cats[w.category].push(w);
+    });
+    var validCats = Object.keys(cats).filter(function(c){ return cats[c].length >= 3; });
+    if (validCats.length < 2) return null;
+    
+    var shuffledCats = shuffle(validCats);
+    var catA = shuffledCats[0];
+    var catB = shuffledCats[1];
+    var wordsA = pick(cats[catA], 3);
+    var wordsB = pick(cats[catB], 3);
+    var allWords = shuffle(wordsA.concat(wordsB));
+    
+    return {
+      type: 'wordfamily',
+      word: wordsA[0], // representative word for tracking purposes
+      prompt: 'Pick the 3 words that belong to: <span class="target-word">' + catA + '</span>',
+      allWords: allWords.map(function(w){ return w.word; }),
+      correctSet: wordsA.map(function(w){ return w.word.toLowerCase(); }),
+      catA: catA,
+      catB: catB,
+    };
+  }
+
+  function buildWordFamilyQuestions(count, fullPool){
+    var qs = [];
+    var attempts = 0;
+    while (qs.length < count && attempts < count * 4){
+      attempts++;
+      var q = buildWordFamilyQ(fullPool);
+      if (q) qs.push(q);
+    }
+    return qs;
+  }
+
+  var BUILDERS = {
+    spelling: function(w,pool){ return buildSpellingQ(w); },
+    define: buildDefineQ,
+    synonym: buildSynonymQ,
+    antonym: buildAntonymQ,
+    cloze: buildClozeQ,
+  };
+
+  // ---------- spaced repetition priority ----------
+  // Returns 1 (mastered) to 5 (brand new / never got right)
+  function wordPriority(word){
+    var key = wordKey(word);
+    var entry = stats.hatched[key];
+
+    // Days since this word was added to the bank
+    var daysSinceAdded = 9999;
+    if (word.dateAdded){
+      var added = new Date(word.dateAdded);
+      var now = new Date();
+      daysSinceAdded = Math.floor((now - added) / (1000 * 60 * 60 * 24));
+    }
+
+    // Brand new this week — always high priority regardless of difficulty
+    if (daysSinceAdded <= 7) return 5;
+
+    // Never answered correctly yet
+    if (!entry) return 4;
+
+    // Oxford difficulty boost:
+    // Beyond/C1 words stay in rotation longer — harder words need more practice
+    // A1/A2/B1 words fade out faster once learned
+    var level = word.oxfordLevel || 'B2';
+    var diffBoost = 0;
+    if (level === 'Beyond') diffBoost = 2;
+    else if (level === 'C1') diffBoost = 1;
+    else if (level === 'B1' || level === 'A2' || level === 'A1') diffBoost = -1;
+
+    // Base priority from correct-answer count
+    var correct = entry.correctCount || 0;
+    var basePriority;
+    if (correct < 3) basePriority = 3;
+    else if (correct < EVOLVE_AT) basePriority = 2;
+    else basePriority = 1; // mastered / evolved
+
+    // Apply difficulty boost, clamped between 1 and 4
+    var finalPriority = Math.max(1, Math.min(4, basePriority + diffBoost));
+    return finalPriority;
+  }
+
+  // Build a priority-weighted pool: guaranteed slots for high-priority words,
+  // occasional appearances for mastered words so nothing is ever forgotten.
+  function buildWeightedPool(modePool, count){
+    // Separate by priority
+    var byPriority = { 5:[], 4:[], 3:[], 2:[], 1:[] };
+    modePool.forEach(function(w){ byPriority[wordPriority(w)].push(w); });
+
+    var selected = [];
+    var seen = new Set();
+
+    function addFromBucket(bucket, n){
+      var shuffled = shuffle(byPriority[bucket] || []);
+      for (var i=0; i<shuffled.length && selected.length < n; i++){
+        var key = wordKey(shuffled[i]);
+        if (!seen.has(key)){ seen.add(key); selected.push(shuffled[i]); }
+      }
+    }
+
+    // Priority 5: fill up to 4 slots guaranteed
+    addFromBucket(5, Math.min(4, count));
+    // Priority 4: fill up to 3 more slots
+    addFromBucket(4, Math.min(selected.length + 3, count));
+    // Priority 3: fill next slots
+    addFromBucket(3, Math.min(selected.length + 4, count));
+    // Priority 2 & 1: fill remaining (mastered words, occasional review)
+    addFromBucket(2, count);
+    addFromBucket(1, count);
+
+    // If still not enough, pad from any remaining words
+    if (selected.length < count){
+      var all = shuffle(modePool);
+      all.forEach(function(w){
+        var key = wordKey(w);
+        if (!seen.has(key) && selected.length < count){ seen.add(key); selected.push(w); }
+      });
+    }
+
+    return shuffle(selected); // shuffle so priority order isn't obvious to the player
+  }
+
+  function poolForMode(mode){
+    var v = VOCAB();
+    if (mode === 'synonym') return v.filter(function(w){ return w.synonyms.length > 0; });
+    if (mode === 'antonym') return v.filter(function(w){ return w.antonyms.length > 0; });
+    if (mode === 'cloze') return v.filter(function(w){ return !!findWordSpanInSentence(w.word, w.sentence); });
+    if (mode === 'oddonout') return v.filter(function(w){ return w.category; });
+    if (mode === 'wordfamily') return v.filter(function(w){ return w.category; });
+    return v;
+  }
+
+  function buildQuestionsForMode(mode, count){
+    var fullPool = VOCAB();
+    if (mode === 'mixed'){
+      var subModes = ['spelling','define','synonym','antonym','cloze'];
+      var modePool = poolForMode('spelling'); // all words eligible for at least spelling
+      var priorityPool = buildWeightedPool(modePool, count);
+      var qs = [];
+      priorityPool.forEach(function(w){
+        // pick a random sub-mode this word is eligible for
+        var eligible = subModes.filter(function(m){
+          if (m==='synonym') return w.synonyms.length>0;
+          if (m==='antonym') return w.antonyms.length>0;
+          if (m==='cloze') return !!findWordSpanInSentence(w.word, w.sentence);
+          return true;
+        });
+        var m = pickOne(eligible);
+        var q = BUILDERS[m](w, fullPool);
+        if (q){ q.modeTag = m; qs.push(q); }
+      });
+      return qs;
+    }
+    if (mode === 'oddonout') return buildOddOneOutQuestions(count, fullPool);
+    if (mode === 'wordfamily') return buildWordFamilyQuestions(count, fullPool);
+
+    var modePool = poolForMode(mode);
+    var priorityPool = buildWeightedPool(modePool, count);
+    var qs2 = [];
+    for (var i=0; i<priorityPool.length && qs2.length<count; i++){
+      var q2 = BUILDERS[mode](priorityPool[i], fullPool);
+      if (q2) qs2.push(q2);
+    }
+    return qs2;
+  }
+
+  function startMode(mode){
+    var meta = MODE_META[mode];
+    var qs = buildQuestionsForMode(mode, meta.size);
+    if (!qs.length){
+      alert('Not enough words for that game yet — try another, or add a few more words first!');
+      return;
+    }
+    session = { mode: mode, questions: qs, idx: 0, score: 0, streak: 0, missed: [], starsEarned: 0, hintUsed: false };
+    qTotalEl.textContent = qs.length;
+    showScreen('question');
+    renderQuestion();
+  }
+
+  // ---------- header / star UI ----------
+  function updateHeaderStats(){
+    starTotalEl.textContent = stats.stars;
+    var hatchedCount = Object.keys(stats.hatched).length;
+    var totalWords = VOCAB().length;
+    hatchedCountEl.textContent = hatchedCount;
+    bestStreakEl.textContent = stats.bestStreak;
+    accuracyPctEl.textContent = stats.totalAnswered ? Math.round(100*stats.totalCorrect/stats.totalAnswered) + '%' : '—';
+
+    var pct = totalWords ? Math.round(100 * hatchedCount / totalWords) : 0;
+    eggFillEl.style.width = pct + '%';
+    eggNoteEl.textContent = hatchedCount === 0
+      ? 'Answer correctly to hatch your first egg!'
+      : (totalWords - hatchedCount) + ' Wordlings left to discover';
+
+    updateMythicChip();
+    renderQuestPanel();
+    refreshHintButton();
+    saveStats();
+  }
+
+  function updateMythicChip(){
+    var miniStats = document.querySelector('.mini-stats');
+    if (!miniStats) return;
+    var chip = document.getElementById('mythic-chip');
+    var count = (stats.mythics || []).length;
+    if (!chip){
+      chip = document.createElement('div');
+      chip.className = 'mini-chip mythic-chip';
+      chip.id = 'mythic-chip';
+      chip.innerHTML = '🔮 Mythics: <b id="mythic-chip-count">0</b>';
+      miniStats.appendChild(chip);
+    }
+    document.getElementById('mythic-chip-count').textContent = count;
+  }
+
+  // ---------- nickname ----------
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  var nicknameBarEl = null;
+  function ensureNicknameBar(){
+    if (nicknameBarEl && document.body.contains(nicknameBarEl)) return nicknameBarEl;
+    var modeScreen = document.getElementById('mode-select-screen');
+    nicknameBarEl = document.createElement('div');
+    nicknameBarEl.className = 'nickname-bar';
+    nicknameBarEl.id = 'nickname-bar';
+    modeScreen.insertBefore(nicknameBarEl, modeScreen.firstChild);
+    return nicknameBarEl;
+  }
+
+  function renderNicknameBar(){
+    var el = ensureNicknameBar();
+    if (stats.nickname){
+      el.innerHTML =
+        '<span class="nb-greeting">👋 Hi, ' + escapeHtml(stats.nickname) + '!</span>' +
+        '<button class="nb-change" id="nb-change-btn">change</button>';
+    } else {
+      el.innerHTML =
+        '<span class="nb-greeting">👋 Welcome!</span>' +
+        '<button class="nb-change" id="nb-change-btn">pick a nickname</button>';
+    }
+    document.getElementById('nb-change-btn').addEventListener('click', openNicknameModal);
+  }
+
+  function openNicknameModal(){
+    var existing = document.getElementById('nickname-modal-backdrop');
+    if (existing) return;
+    var backdrop = document.createElement('div');
+    backdrop.className = 'nickname-modal-backdrop';
+    backdrop.id = 'nickname-modal-backdrop';
+    backdrop.innerHTML =
+      '<div class="nickname-modal">' +
+        '<h3>What should we call you?</h3>' +
+        '<p>Pick a nickname to see around the app \u2014 not your real name if you\u2019d rather not.</p>' +
+        '<input type="text" id="nm-input" maxlength="18" placeholder="e.g. WordWizard" value="' + escapeHtml(stats.nickname || '') + '">' +
+        '<div class="nm-err" id="nm-err"></div>' +
+        '<div class="nm-actions">' +
+          '<button class="nm-save" id="nm-save-btn">Save</button>' +
+        '</div>' +
+        '<button class="nm-skip" id="nm-skip-btn">' + (stats.nickname ? 'Cancel' : 'Skip for now') + '</button>' +
+      '</div>';
+    document.body.appendChild(backdrop);
+    var input = document.getElementById('nm-input');
+    input.focus();
+    input.select();
+
+    function closeModal(){ backdrop.remove(); }
+    function trySave(){
+      var val = input.value.replace(/\s+/g, ' ').trim();
+      if (!val){ document.getElementById('nm-err').textContent = 'Type something first, or tap Skip.'; return; }
+      if (val.length > 18){ val = val.slice(0, 18); }
+      stats.nickname = val;
+      saveStats();
+      renderNicknameBar();
+      closeModal();
+    }
+    document.getElementById('nm-save-btn').addEventListener('click', trySave);
+    document.getElementById('nm-skip-btn').addEventListener('click', closeModal);
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') trySave(); });
+    backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeModal(); });
+  }
+
+  // ---------- quest panel ----------
+  var questCardEl = null;
+  var questEditMode = false;
+  function ensureQuestPanel(){
+    if (questCardEl && document.body.contains(questCardEl)) return questCardEl;
+    var modeScreen = document.getElementById('mode-select-screen');
+    var introNote = modeScreen.querySelector('.intro-note');
+    questCardEl = document.createElement('div');
+    questCardEl.className = 'quest-card';
+    questCardEl.id = 'quest-card';
+    modeScreen.insertBefore(questCardEl, introNote);
+    return questCardEl;
+  }
+
+  // Parent-only entry point: no visible button anywhere. Tapping the "Weekly
+  // Quests" title 5 times within 1.5s opens the editor. Nothing on screen
+  // hints this exists.
+  var secretTapCount = 0;
+  var secretTapTimer = null;
+  function registerSecretTap(q){
+    secretTapCount++;
+    clearTimeout(secretTapTimer);
+    secretTapTimer = setTimeout(function(){ secretTapCount = 0; }, 1800);
+    if (secretTapCount >= 5){
+      secretTapCount = 0;
+      clearTimeout(secretTapTimer);
+      openQuestEditor(q);
+    }
+  }
+
+  function renderQuestPanel(){
+    var q = getCurrentQuest();
+    if (!q) return;
+    var el = ensureQuestPanel();
+    if (questEditMode) return; // an edit form is open — don't clobber it with a routine refresh
+    var wq = q.wordQuest, cq = q.challengeQuest;
+    var wPct = Math.round(100 * wq.progress / wq.target);
+    var cPct = Math.round(100 * cq.progress / cq.target);
+    var modeLabel = MODE_LABELS[cq.mode] || cq.mode;
+    var rewardHtml;
+    if (q.bothDone){
+      var myth = stats.mythics.filter(function(m){ return m.weekKey === q.weekKey; })[0];
+      var svg = myth ? mythicSVG(myth.seed) : mythicSVG(q.mythicSeed);
+      var name = myth ? myth.name : 'Mythic Wordling';
+      rewardHtml = '<div class="quest-reward-row done"><div class="quest-reward-svg">' + svg + '</div>' +
+        '<div class="quest-reward-text"><b>' + name + '</b> earned this week! Find it in your Album. ✨</div></div>';
+    } else {
+      rewardHtml = '<div class="quest-reward-row"><div class="quest-reward-svg silhouette">' + mythicSVG(q.mythicSeed) + '</div>' +
+        '<div class="quest-reward-text">Complete both quests to unlock a one-of-a-kind <b>Mythic Wordling</b> ✨</div></div>';
+    }
+    el.innerHTML =
+      '<div class="quest-card-title" id="quest-card-title">🗺️ Weekly Quests</div>' +
+      '<div class="quest-line"><div class="quest-line-top"><span>📝 Add-a-Word Quest</span><span>' + wq.progress + '/' + wq.target + (wq.done ? ' ✅' : '') + '</span></div>' +
+        '<div class="quest-track"><div class="quest-fill" style="width:' + wPct + '%"></div></div>' +
+        '<div class="quest-sub">Add ' + wq.target + ' new words to the collection this week</div></div>' +
+      '<div class="quest-line"><div class="quest-line-top"><span>🎯 Challenge Quest</span><span>' + cq.progress + '/' + cq.target + (cq.done ? ' ✅' : '') + '</span></div>' +
+        '<div class="quest-track"><div class="quest-fill" style="width:' + cPct + '%"></div></div>' +
+        '<div class="quest-sub">Play ' + modeLabel + ' ' + cq.target + ' times</div></div>' +
+      rewardHtml;
+    var titleEl = document.getElementById('quest-card-title');
+    if (titleEl) titleEl.addEventListener('click', function(){ registerSecretTap(q); });
+  }
+
+  function openQuestEditor(q){
+    questEditMode = true;
+    var el = ensureQuestPanel();
+    var modeOptions = MODES_LIST.map(function(m){
+      return '<option value="' + m + '"' + (m === q.challengeQuest.mode ? ' selected' : '') + '>' + MODE_LABELS[m] + '</option>';
+    }).join('');
+    el.innerHTML =
+      '<div class="quest-card-title">⚙️ Set This Week\u2019s Quests</div>' +
+      '<div class="qe-row"><label for="qe-word-target">Add-a-Word target</label>' +
+        '<input type="number" min="1" max="50" id="qe-word-target" value="' + q.wordQuest.target + '"></div>' +
+      '<div class="qe-row"><label for="qe-challenge-mode">Challenge mode</label>' +
+        '<select id="qe-challenge-mode">' + modeOptions + '</select></div>' +
+      '<div class="qe-row"><label for="qe-challenge-target">Challenge target (times played)</label>' +
+        '<input type="number" min="1" max="20" id="qe-challenge-target" value="' + q.challengeQuest.target + '"></div>' +
+      '<div class="qe-hint">' + (q.bothDone
+        ? 'This week\u2019s Mythic is already earned, so these changes will apply from next week onward.'
+        : 'Applies to this week right away, and becomes the default for future weeks too.') + '</div>' +
+      '<div class="qe-actions">' +
+        '<button class="qe-save-btn" id="qe-save-btn">Save</button>' +
+        '<button class="qe-cancel-btn" id="qe-cancel-btn">Cancel</button>' +
+      '</div>';
+    document.getElementById('qe-save-btn').addEventListener('click', function(){ saveQuestEdits(q); });
+    document.getElementById('qe-cancel-btn').addEventListener('click', function(){ questEditMode = false; renderQuestPanel(); });
+  }
+
+  function saveQuestEdits(q){
+    var wordTarget = Math.max(1, Math.min(50, parseInt(document.getElementById('qe-word-target').value, 10) || DEFAULT_WORD_TARGET));
+    var challengeMode = document.getElementById('qe-challenge-mode').value;
+    var challengeTarget = Math.max(1, Math.min(20, parseInt(document.getElementById('qe-challenge-target').value, 10) || DEFAULT_CHALLENGE_TARGET));
+
+    // persist as the standing default for future weeks
+    stats.questSettings = { wordTarget: wordTarget, challengeMode: challengeMode, challengeTarget: challengeTarget };
+
+    // apply to the live quest immediately too, unless this week's Mythic is already banked
+    if (!q.bothDone){
+      q.wordQuest.target = wordTarget;
+      q.wordQuest.done = q.wordQuest.progress >= wordTarget;
+      if (challengeMode !== q.challengeQuest.mode) q.challengeQuest.progress = 0;
+      q.challengeQuest.mode = challengeMode;
+      q.challengeQuest.target = challengeTarget;
+      q.challengeQuest.done = q.challengeQuest.progress >= challengeTarget;
+      if (q.wordQuest.done && q.challengeQuest.done && !q.bothDone){
+        q.bothDone = true;
+        queueMythicReward();
+      }
+    }
+    saveStats();
+    questEditMode = false;
+    renderQuestPanel();
+    if (q.bothDone) setTimeout(function(){ showNextHatch(); }, 300);
+  }
+
+  function refreshHintButton(){
+    if (!hintBtn) return;
+    hintBtn.disabled = stats.stars < HINT_COST || (session && session.hintUsed);
+  }
+
+  function awardStars(n){
+    stats.stars += n;
+    updateHeaderStats();
+  }
+
+  function spendStars(n){
+    if (stats.stars < n) return false;
+    stats.stars -= n;
+    updateHeaderStats();
+    return true;
+  }
+
+  function recordCorrectForWord(word, wasSpelling){
+    var key = wordKey(word);
+    var isNewHatch = !stats.hatched[key];
+    if (isNewHatch){
+      var sp = getSpecies(word.category);
+      var seed = seedFor(word);
+      stats.hatched[key] = { category: word.category, seed: seed, word: word.word, speciesName: sp.name, correctCount: 1, evolved: false, evolution: word.evolution, spelledCorrect: !!wasSpelling, masteredSentence: false };
+      pendingHatches.push({ type: 'hatch', entry: stats.hatched[key] });
+      return;
+    }
+    var entry = stats.hatched[key];
+    if (entry.evolved) return; // already at max stage, nothing more to track visually
+    entry.correctCount = (entry.correctCount || 1) + 1;
+    if (entry.correctCount >= EVOLVE_AT){
+      entry.evolved = true;
+      pendingHatches.push({ type: 'evolve', entry: entry });
+    }
+  }
+
+  function showNextHatch(){
+    if (!pendingHatches.length) return false;
+    var item = pendingHatches.shift();
+    var remaining = pendingHatches.length;
+    var h = item.entry;
+
+    hatchOverlay.classList.remove('mythic-overlay');
+    if (item.type === 'mythic'){
+      hatchSvgWrap.innerHTML = mythicSVG(h.seed);
+      hatchLabelEl.textContent = '✨ Weekly Quests Complete! ✨';
+      hatchName.textContent = h.name;
+      hatchDesc.innerHTML = 'A rare purple-and-gold <b>Mythic Wordling</b> has appeared! You earned it by completing both quests this week — one of a kind, and yours to keep.';
+      hatchOverlay.classList.add('mythic-overlay');
+    } else if (item.type === 'evolve'){
+      hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, true);
+      hatchLabelEl.textContent = 'Your Wordling evolved!';
+      hatchName.textContent = h.speciesName + ' grew stronger!';
+      var extra = remaining > 0 ? ' (+' + remaining + ' more waiting in your album)' : '';
+      hatchDesc.innerHTML = 'You have mastered "' + h.word + '" ' + EVOLVE_AT + ' times! It just taught you a more powerful word: <b>' + h.evolution + '</b>.' + extra;
+    } else {
+      hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, false);
+      hatchLabelEl.textContent = 'An egg hatched!';
+      hatchName.textContent = h.speciesName;
+      if (remaining > 0){
+        hatchDesc.textContent = 'Hatched by learning "' + h.word + '". It joins your ' + h.category + ' collection! (+' + remaining + ' more waiting in your album)';
+      } else {
+        hatchDesc.textContent = 'Hatched by learning "' + h.word + '". It joins your ' + h.category + ' collection!';
+      }
+    }
+
+    if (remaining > 0 && item.type !== 'mythic') pendingHatches = []; // batch the rest quietly, same as before
+    hatchOverlay.classList.add('show');
+    return true;
+  }
+  document.getElementById('hatch-continue-btn').addEventListener('click', function(){
+    hatchOverlay.classList.remove('show');
+    updateHeaderStats();
+    setTimeout(function(){ showNextHatch(); }, 250);
+  });
+
+  // ---------- rendering a question ----------
+  function renderQuestion(){
+    var q = session.questions[session.idx];
+    var meta = MODE_META[session.mode];
+    var tag = q.modeTag ? MODE_META[q.modeTag] : meta;
+
+    qCurrentEl.textContent = session.idx + 1;
+    progressFill.style.width = Math.round(100 * session.idx / session.questions.length) + '%';
+    qEyebrow.textContent = tag.icon + ' ' + tag.eyebrow;
+    feedbackStrip.classList.remove('show','correct','incorrect');
+    nextBtn.classList.remove('show');
+    starBurst.innerHTML = '';
+    hintReveal.classList.remove('show');
+    hintReveal.textContent = '';
+    session.hintUsed = false;
+    refreshHintButton();
+    var sz = document.getElementById('sentence-zone');
+    if (sz) sz.style.display = 'none';
+
+    if (q.type === 'spelling'){
+      qPrompt.innerHTML = 'Spell the word that means: <br>\u201c' + q.prompt + '\u201d' +
+        (q.pos ? ' <span class="q-pos">(' + q.pos + ')</span>' : '');
+      answerArea.innerHTML =
+        '<div class="spelling-input-row">' +
+          '<input type="text" class="spelling-input" id="spelling-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your answer\u2026">' +
+          '<button class="submit-btn" id="submit-spelling">Go! \uD83D\uDE80</button>' +
+        '</div>';
+      var input = document.getElementById('spelling-input');
+      var submitBtn = document.getElementById('submit-spelling');
+      input.focus();
+      function submit(){ if (!input.disabled) checkSpelling(q, input, submitBtn); }
+      submitBtn.addEventListener('click', submit);
+      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') submit(); });
+
+    } else if (q.type === 'wordfamily'){
+      qPrompt.innerHTML = q.prompt;
+      var wfHtml = '<div class="options-grid">';
+      q.allWords.forEach(function(word){
+        wfHtml += '<button class="option-btn wf-btn" data-word="' + word.toLowerCase() + '">' + cap(word) + '</button>';
+      });
+      wfHtml += '</div>';
+      wfHtml += '<div style="font-size:12px;color:var(--cream-dim);margin-top:10px;text-align:center;">Tap 3 words \u2014 then press Check</div>';
+      wfHtml += '<button class="submit-btn" id="wf-submit" style="width:100%;margin-top:10px;display:none;">Check \u2713</button>';
+      answerArea.innerHTML = wfHtml;
+
+      var wfSelected = [];
+      var wfBtns = Array.prototype.slice.call(answerArea.querySelectorAll('.wf-btn'));
+      var wfSubmit = document.getElementById('wf-submit');
+
+      wfBtns.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (btn.disabled) return;
+          var word = btn.getAttribute('data-word');
+          var idx = wfSelected.indexOf(word);
+          if (idx > -1){
+            wfSelected.splice(idx, 1);
+            btn.style.borderColor = '';
+            btn.style.background = '';
+          } else if (wfSelected.length < 3){
+            wfSelected.push(word);
+            btn.style.borderColor = 'var(--gold)';
+            btn.style.background = 'rgba(232,166,88,0.15)';
+          }
+          wfSubmit.style.display = wfSelected.length === 3 ? 'block' : 'none';
+        });
+      });
+
+      wfSubmit.addEventListener('click', function(){
+        wfBtns.forEach(function(b){ b.disabled = true; });
+        wfSubmit.disabled = true;
+        var correct = wfSelected.length === 3 &&
+          q.correctSet.every(function(w){ return wfSelected.indexOf(w) > -1; });
+        wfBtns.forEach(function(b){
+          var w = b.getAttribute('data-word');
+          if (q.correctSet.indexOf(w) > -1) b.classList.add('correct');
+          else if (wfSelected.indexOf(w) > -1) b.classList.add('incorrect');
+          b.style.borderColor = ''; b.style.background = '';
+        });
+        var extra = correct ? '' : 'The <b>' + q.catA + '</b> words were: ' + q.correctSet.map(cap).join(', ');
+        var reward = recordAnswer(q.word, correct);
+        showFeedback(q.word, correct, extra, reward);
+      });
+
+    } else {
+      qPrompt.innerHTML = q.prompt;
+      var html = '<div class="options-grid">';
+      q.options.forEach(function(opt, i){
+        html += '<button class="option-btn" data-idx="' + i + '">' + cap(opt) + '</button>';
+      });
+      html += '</div>';
+      if (q.isOddOneOut){
+        html += '<div style="font-size:12px;color:var(--cream-dim);margin-top:10px;text-align:center;">\uD83D\uDCA1 Three words share a theme \u2014 find the one that does not</div>';
+      }
+      answerArea.innerHTML = html;
+      var btns = answerArea.querySelectorAll('.option-btn');
+      btns.forEach(function(btn){
+        btn.addEventListener('click', function(){ checkChoice(q, btn, btns); });
+      });
+    }
+  }
+
+  // ---------- hint system ----------
+  hintBtn.addEventListener('click', function(){
+    if (!session || session.hintUsed) return;
+    if (stats.stars < HINT_COST) return;
+    var q = session.questions[session.idx];
+    if (!spendStars(HINT_COST)) return;
+    session.hintUsed = true;
+    refreshHintButton();
+
+    if (q.type === 'spelling'){
+      hintReveal.textContent = '💡 It starts with "' + q.word.word.charAt(0).toUpperCase() + '" and has ' + q.word.word.replace(/[^A-Za-z]/g,'').length + ' letters.';
+      hintReveal.classList.add('show');
+    } else {
+      // remove one incorrect option
+      var btns = Array.prototype.slice.call(answerArea.querySelectorAll('.option-btn'));
+      var wrongBtns = btns.filter(function(b){ return b.textContent.trim().toLowerCase() !== q.answer.trim().toLowerCase() && !b.classList.contains('removed'); });
+      if (wrongBtns.length > 1){
+        pickOne(wrongBtns).classList.add('removed');
+        hintReveal.textContent = '💡 One wrong answer removed!';
+      } else {
+        hintReveal.textContent = '💡 It starts with "' + q.answer.trim().charAt(0).toUpperCase() + '".';
+      }
+      hintReveal.classList.add('show');
+    }
+  });
+
+  // ---------- star burst animation ----------
+  function fireStarBurst(count){
+    var html = '';
+    for (var i = 0; i < count; i++){
+      var angle = (Math.random() * 360) * Math.PI / 180;
+      var dist = 40 + Math.random()*30;
+      var tx = Math.round(Math.cos(angle) * dist);
+      var ty = Math.round(Math.sin(angle) * dist - 20);
+      var delay = (i * 0.06).toFixed(2);
+      html += '<span class="burst-star" style="--tx:' + tx + 'px;--ty:' + ty + 'px;animation-delay:' + delay + 's;">⭐</span>';
+    }
+    starBurst.innerHTML = html;
+  }
+
+  // ---------- answer checking ----------
+  function recordAnswer(word, correct, isSpelling){
+    stats.totalAnswered++;
+    var starsForCorrect = isSpelling ? STARS_SPELL : STARS_CHOICE;
+    if (correct){
+      stats.totalCorrect++;
+      session.score++;
+      session.streak++;
+      if (session.streak > stats.bestStreak) stats.bestStreak = session.streak;
+      var earned = starsForCorrect;
+      var bonus = 0;
+      if (session.streak > 0 && session.streak % 3 === 0){ bonus = 1; earned += 1; }
+      session.starsEarned += earned;
+      awardStars(earned);
+      fireStarBurst(earned);
+      recordCorrectForWord(word, !!isSpelling);
+      return { earned: earned, bonus: bonus, brave: false };
+    } else {
+      session.streak = 0;
+      session.missed.push(word);
+      updateHeaderStats();
+      return { earned: 0, bonus: 0, brave: false };
+    }
+  }
+
+  function showFeedback(word, correct, extra, reward){
+    feedbackStrip.classList.add('show', correct ? 'correct' : 'incorrect');
+    feedbackStrip.classList.remove(correct ? 'incorrect' : 'correct');
+    var starsText = '';
+    if (correct){
+      starsText = ' <span class="fb-stars">+' + reward.earned + ' ⭐' + (reward.bonus ? ' (streak bonus!)' : '') + '</span>';
+    }
+    fbWord.innerHTML = (correct ? '🎉 ' : '💭 ') + word.word + starsText;
+    fbText.innerHTML = '<i>' + word.pos + '</i> — ' + word.meaning + (extra ? '<br>' + extra : '');
+    nextBtn.classList.add('show');
+  }
+
+  function checkSpelling(q, input, submitBtn){
+    var given = normalise(input.value);
+    var correct = given === normalise(q.word.word);
+    input.disabled = true;
+    submitBtn.disabled = true;
+    input.classList.add(correct ? 'correct' : 'incorrect');
+    var extra = correct ? '' : 'Correct spelling: <b>' + q.word.word + '</b>';
+    var reward = recordAnswer(q.word, correct, true);
+    showFeedback(q.word, correct, extra, reward);
+    if (correct) showSentencePrompt(q.word);
+  }
+
+  function showSentencePrompt(word){
+    var zone = document.getElementById('sentence-zone');
+    var prompt = document.getElementById('sent-prompt');
+    var input = document.getElementById('sent-input');
+    var submitBtn = document.getElementById('sent-submit');
+    var skipBtn = document.getElementById('sent-skip');
+    var checking = document.getElementById('sent-checking');
+    var feedback = document.getElementById('sent-feedback');
+
+    prompt.innerHTML = '\uD83D\uDCA1 Want +' + STARS_SENTENCE + '\u2B50 more? Write a sentence using <b>' + word.word + '</b> to show you understand its precise meaning:';
+    input.value = '';
+    input.disabled = false;
+    submitBtn.style.display = '';
+    submitBtn.disabled = false;
+    skipBtn.disabled = false;
+    skipBtn.textContent = 'Skip';
+    checking.style.display = 'none';
+    feedback.style.display = 'none';
+    feedback.className = 'sent-feedback';
+    zone.style.display = 'block';
+
+    skipBtn.onclick = function(){ zone.style.display = 'none'; };
+
+    submitBtn.onclick = function(){
+      var txt = input.value.trim();
+      if (!txt || txt.split(' ').length < 4){
+        feedback.innerHTML = 'Please write a proper sentence (at least 4 words)!';
+        feedback.className = 'sent-feedback try';
+        feedback.style.display = 'block';
+        return;
+      }
+      submitBtn.disabled = true;
+      skipBtn.disabled = true;
+      checking.style.display = 'block';
+      feedback.style.display = 'none';
+
+      function handleFeedback(fb){
+        checking.style.display = 'none';
+        var isGood = fb.indexOf('\u2705') === 0;
+        feedback.innerHTML = fb;
+        feedback.className = 'sent-feedback ' + (isGood ? 'good' : 'try');
+        feedback.style.display = 'block';
+        if (isGood){
+          awardStars(STARS_SENTENCE);
+          session.starsEarned += STARS_SENTENCE;
+          var key = wordKey(word);
+          if (stats.hatched[key]) stats.hatched[key].masteredSentence = true;
+          saveStats();
+          updateHeaderStats();
+          fireStarBurst(STARS_SENTENCE);
+          submitBtn.style.display = 'none';
+          skipBtn.textContent = 'Continue \u2192';
+          skipBtn.disabled = false;
+        } else {
+          submitBtn.disabled = false;
+          skipBtn.disabled = false;
+        }
+      }
+      function handleFailure(){
+        checking.style.display = 'none';
+        feedback.innerHTML = 'Could not check your sentence right now. Keep practising \u2014 the more you use the word the better it sticks!';
+        feedback.className = 'sent-feedback try';
+        feedback.style.display = 'block';
+        submitBtn.disabled = false;
+        skipBtn.disabled = false;
+      }
+
+      if (AI_PROXY_URL){
+        // Preferred, secure path once this game is hosted: the real API key
+        // lives only on the server behind AI_PROXY_URL, never in this file.
+        fetch(AI_PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word: word.word, pos: word.pos, meaning: word.meaning, sentence: txt })
+        }).then(function(resp){ return resp.json(); })
+          .then(function(data){ handleFeedback(data.feedback || 'Good effort!'); })
+          .catch(handleFailure);
+      } else if (LOCAL_API_KEY && LOCAL_API_KEY.indexOf('PASTE_YOUR') !== 0){
+        // Local/unhosted fallback: calls Anthropic directly using the key
+        // pasted below. Anyone with this file can read that key in the page
+        // source \u2014 keep this copy private, don't share it or upload it anywhere.
+        fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': LOCAL_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 200,
+            messages: [{ role: 'user', content: buildSentenceCheckPrompt(word, txt) }]
+          })
+        }).then(function(resp){ return resp.json(); })
+          .then(function(data){
+            var fb = (data.content && data.content[0]) ? data.content[0].text : 'Good effort!';
+            handleFeedback(fb);
+          }).catch(handleFailure);
+      } else {
+        checking.style.display = 'none';
+        feedback.innerHTML = 'Sentence checking isn\u2019t set up yet \u2014 ask a grown-up to add an API key! You still get the practice either way.';
+        feedback.className = 'sent-feedback try';
+        feedback.style.display = 'block';
+        submitBtn.disabled = false;
+        skipBtn.disabled = false;
+      }
+    };
+  }
+
+  function checkChoice(q, btn, allBtns){
+    allBtns.forEach(function(b){ b.disabled = true; });
+    var chosen = btn.textContent.trim().toLowerCase();
+    var correct = chosen === q.answer.trim().toLowerCase();
+    allBtns.forEach(function(b){
+      var val = b.textContent.trim().toLowerCase();
+      if (val === q.answer.trim().toLowerCase()) b.classList.add('correct');
+      else if (b === btn) b.classList.add('incorrect');
+    });
+    var extra = '';
+    if (q.isCloze){
+      extra = '';
+    } else if (q.isOddOneOut){
+      extra = correct
+        ? 'The other three (' + q.groupWords.map(cap).join(', ') + ') all belong to <b>' + q.groupCategory + '</b>'
+        : 'The odd one out was <b>' + q.answer + '</b> — the others belong to <b>' + q.groupCategory + '</b>';
+    } else {
+      extra = correct ? '' : 'Correct answer: <b>' + q.answer + '</b>';
+    }
+    var reward = recordAnswer(q.word, correct, false);
+    showFeedback(q.word, correct, extra, reward);
+  }
+
+  function nextQuestion(){
+    session.idx++;
+    if (session.idx >= session.questions.length){
+      showResults();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  // ---------- results ----------
+  function trackModePlay(mode){
+    if (!stats.modePlays) stats.modePlays = {};
+    stats.modePlays[mode] = (stats.modePlays[mode] || 0) + 1;
+    if (updateQuestProgress('mode', mode)) queueMythicReward();
+    saveStats();
+    renderQuestPanel();
+  }
+
+  function showResults(){
+    trackModePlay(session.mode);
+    progressFill.style.width = '100%';
+    var meta = MODE_META[session.mode];
+    document.getElementById('results-mode-label').textContent = meta.icon + ' ' + meta.label + ' — Complete!';
+    var score = session.score, total = session.questions.length;
+    document.getElementById('results-score').textContent = score + '/' + total;
+    var pct = Math.round(100*score/total);
+    var icon, grade, message;
+    if (pct === 100){ icon='🏆'; grade = 'Perfect quest!'; message = 'Every word landed perfectly. Top-school standard, right there.'; }
+    else if (pct >= 85){ icon='🌟'; grade = 'Amazing work!'; message = 'Brilliant recall. Just a couple to polish and you are exam-ready.'; }
+    else if (pct >= 70){ icon='✨'; grade = 'Great job!'; message = 'Solid work out there. A little more practice and you will be unstoppable.'; }
+    else if (pct >= 50){ icon='🚀'; grade = 'Good effort!'; message = 'You are building real momentum. Have another go at the words below.'; }
+    else { icon='🌙'; grade = 'Keep exploring!'; message = 'Every Wordling keeper starts somewhere. Look over the words below, then try again.'; }
+    document.getElementById('results-icon').textContent = icon;
+    document.getElementById('results-grade').textContent = grade;
+    document.getElementById('results-message').textContent = message;
+    document.getElementById('results-stars-earned').textContent = '+' + session.starsEarned + ' stars earned this round! ⭐';
+
+    var wrap = document.getElementById('missed-words-wrap');
+    var list = document.getElementById('missed-words-list');
+    list.innerHTML = '';
+    if (session.missed.length){
+      wrap.style.display = 'block';
+      session.missed.forEach(function(w){
+        var div = document.createElement('div');
+        div.className = 'missed-item';
+        div.innerHTML = '<b>' + w.word + '</b> <i>(' + w.pos + ')</i> — ' + w.meaning;
+        list.appendChild(div);
+      });
+    } else {
+      wrap.style.display = 'none';
+    }
+
+    showScreen('results');
+    setTimeout(function(){ showNextHatch(); }, 300);
+  }
+
+  // ---------- album ----------
+  function ensureMythicShowcase(){
+    var el = document.getElementById('mythic-showcase');
+    if (el) return el;
+    var albumScreen = document.getElementById('album-screen');
+    var filterRow = document.getElementById('album-filter-row');
+    el = document.createElement('div');
+    el.className = 'mythic-showcase';
+    el.id = 'mythic-showcase';
+    albumScreen.insertBefore(el, filterRow);
+    return el;
+  }
+
+  function renderMythicShowcase(){
+    var el = ensureMythicShowcase();
+    var mythics = stats.mythics || [];
+    if (!mythics.length){
+      el.classList.remove('has-mythics');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.add('has-mythics');
+    var html = '<div style="width:100%;font-family:var(--display);font-weight:800;font-size:12.5px;color:#E4CFFB;text-align:center;margin-bottom:2px;">✨ Mythic Wordlings ✨</div>';
+    mythics.forEach(function(m){
+      html += '<div class="mythic-slot"><div class="slot-svg">' + mythicSVG(m.seed) + '</div>' +
+        '<div class="slot-name">' + m.name + '</div><div class="slot-tag">Week ' + m.weekKey.split('-W')[1] + '</div></div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function renderAlbum(filterCategory){
+    var grid = document.getElementById('album-grid');
+    var countEl = document.getElementById('album-count');
+    var totalWords = VOCAB().length;
+    var hatchedKeys = Object.keys(stats.hatched);
+    countEl.textContent = hatchedKeys.length + ' / ' + totalWords;
+    renderMythicShowcase();
+
+    var filterRow = document.getElementById('album-filter-row');
+    if (!filterRow.dataset.built){
+      var rowHtml = '<button class="filter-chip active" data-cat="all">All</button>';
+      ALL_CATEGORIES.forEach(function(cat){
+        rowHtml += '<button class="filter-chip" data-cat="' + cat + '">' + getSpecies(cat).name + 's</button>';
+      });
+      filterRow.innerHTML = rowHtml;
+      filterRow.dataset.built = '1';
+      filterRow.querySelectorAll('.filter-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          filterRow.querySelectorAll('.filter-chip').forEach(function(c){ c.classList.remove('active'); });
+          chip.classList.add('active');
+          renderAlbumGrid(chip.getAttribute('data-cat'));
+        });
+      });
+    }
+    renderAlbumGrid(filterCategory || 'all');
+  }
+
+  function renderAlbumGrid(filterCategory){
+    var grid = document.getElementById('album-grid');
+    var entries = Object.keys(stats.hatched).map(function(k){ return stats.hatched[k]; });
+    if (filterCategory && filterCategory !== 'all'){
+      entries = entries.filter(function(e){ return e.category === filterCategory; });
+    }
+    var html = '';
+    entries.forEach(function(h){
+      var progressNote = h.evolved
+        ? '<div class="slot-evolved-tag">⭐ Evolved</div>'
+        : '<div class="slot-progress">' + (h.correctCount || 1) + '/' + EVOLVE_AT + ' to evolve</div>';
+      var badges = (h.spelledCorrect ? '🏅' : '') + (h.masteredSentence ? '🌟' : '');
+      html += '<div class="album-slot' + (h.evolved ? ' evolved' : '') + '"><div class="slot-svg">' + renderWordlingSVG(h.category, h.seed, !!h.evolved) + '</div>' +
+        '<div class="slot-name">' + h.speciesName + '</div><div class="slot-word">' + h.word + '</div>' +
+        (badges ? '<div class="slot-badges">' + badges + '</div>' : '') + progressNote + '</div>';
+    });
+    // show a handful of mystery eggs for words not yet discovered in this view, capped so the grid stays tidy
+    var totalInView = filterCategory && filterCategory !== 'all'
+      ? VOCAB().filter(function(w){ return w.category === filterCategory; }).length
+      : VOCAB().length;
+    var undiscovered = Math.max(0, totalInView - entries.length);
+    var placeholderCount = Math.min(undiscovered, 8);
+    for (var i=0;i<placeholderCount;i++){
+      html += '<div class="album-slot empty"><div class="slot-svg">🥚</div><div class="slot-name">???</div></div>';
+    }
+    grid.innerHTML = html || '<p style="color:var(--cream-dim);text-align:center;grid-column:1/-1;">No Wordlings hatched yet — play a game to get started!</p>';
+  }
+
+  // ---------- add word screen ----------
+  var categorySelect = document.getElementById('nw-category');
+  categorySelect.innerHTML = ALL_CATEGORIES.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+
+  function renderNewWordsList(){
+    var wrap = document.getElementById('new-words-list-wrap');
+    var list = document.getElementById('new-words-list');
+    var exportBtn = document.getElementById('form-export-btn');
+    if (!customWords.length){
+      wrap.style.display = 'none';
+      exportBtn.disabled = true;
+      return;
+    }
+    wrap.style.display = 'block';
+    exportBtn.disabled = false;
+    list.innerHTML = '';
+    customWords.forEach(function(w, i){
+      var div = document.createElement('div');
+      div.className = 'new-word-item';
+      div.innerHTML = '<span><b>' + w.word + '</b> (' + w.pos + ') — ' + w.meaning + '</span>';
+      var btn = document.createElement('button');
+      btn.className = 'remove-word-btn';
+      btn.textContent = '✕';
+      btn.title = 'Remove this word';
+      btn.addEventListener('click', function(){
+        customWords.splice(i, 1);
+        renderNewWordsList();
+      });
+      div.appendChild(btn);
+      list.appendChild(div);
+    });
+  }
+
+  function showFormMsg(text, isError){
+    var msg = document.getElementById('form-msg');
+    msg.textContent = text;
+    msg.classList.add('show');
+    msg.classList.toggle('error', !!isError);
+    msg.classList.toggle('success', !isError);
+  }
+
+  document.getElementById('form-submit-btn').addEventListener('click', function(){
+    var word = document.getElementById('nw-word').value.trim();
+    var pos = document.getElementById('nw-pos').value;
+    var category = document.getElementById('nw-category').value;
+    var meaning = document.getElementById('nw-meaning').value.trim();
+    var sentence = document.getElementById('nw-sentence').value.trim();
+    var synonyms = document.getElementById('nw-synonyms').value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+    var antonyms = document.getElementById('nw-antonyms').value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+
+    if (!word || !meaning || !synonyms.length){
+      showFormMsg('Please fill in at least the word, its meaning, and one synonym.', true);
+      return;
+    }
+    var dupe = VOCAB().some(function(w){ return w.word.toLowerCase() === word.toLowerCase() && w.pos === pos; });
+    if (dupe){
+      showFormMsg('That word is already in the collection!', true);
+      return;
+    }
+    customWords.push({ word: word, pos: pos, category: category, meaning: meaning, sentence: sentence, synonyms: synonyms, antonyms: antonyms });
+    var justCompleted = updateQuestProgress('addword');
+    if (justCompleted) queueMythicReward();
+    var q = getCurrentQuest();
+    var questNote = q ? ' (' + q.wordQuest.progress + '/' + q.wordQuest.target + ' words toward this week\u2019s quest' + (q.wordQuest.done ? ' \u2014 quest complete! \uD83C\uDF89' : '') + ')' : '';
+    showFormMsg('"' + word + '" added! You can play with it straight away.' + questNote, false);
+    document.getElementById('nw-word').value = '';
+    document.getElementById('nw-meaning').value = '';
+    document.getElementById('nw-sentence').value = '';
+    document.getElementById('nw-synonyms').value = '';
+    document.getElementById('nw-antonyms').value = '';
+    renderNewWordsList();
+    updateHeaderStats();
+    if (justCompleted) setTimeout(function(){ showNextHatch(); }, 300);
+  });
+
+  document.getElementById('form-export-btn').addEventListener('click', function(){
+    if (!customWords.length) return;
+    var blob = new Blob([JSON.stringify(customWords, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'wordlings_new_words.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  // ---------- wiring ----------
+  document.querySelectorAll('.mode-card').forEach(function(card){
+    card.addEventListener('click', function(){ startMode(card.getAttribute('data-mode')); });
+  });
+  document.getElementById('quit-btn').addEventListener('click', function(){
+    if (session && session.idx > 0) showResults();
+    else showScreen('mode');
+  });
+  document.getElementById('next-btn').addEventListener('click', nextQuestion);
+  document.getElementById('retry-btn').addEventListener('click', function(){ startMode(session.mode); });
+  document.getElementById('menu-btn').addEventListener('click', function(){ showScreen('mode'); });
+
+  // ---------- backup / restore progress ----------
+  // Since progress lives only in this browser's localStorage, moving to a new
+  // laptop or keeping two devices in sync means exporting a snapshot from one
+  // and importing it into the other.
+  function ensureBackupButtons(){
+    var row = document.querySelector('.secondary-actions');
+    var resetBtn = document.getElementById('reset-btn');
+    if (!row || document.getElementById('backup-btn')) return;
+
+    var backupBtn = document.createElement('button');
+    backupBtn.className = 'secondary-btn';
+    backupBtn.id = 'backup-btn';
+    backupBtn.innerHTML = '💾 Backup progress';
+    row.insertBefore(backupBtn, resetBtn);
+
+    var restoreBtn = document.createElement('button');
+    restoreBtn.className = 'secondary-btn';
+    restoreBtn.id = 'restore-btn';
+    restoreBtn.innerHTML = '📤 Restore progress';
+    row.insertBefore(restoreBtn, resetBtn);
+
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/json';
+    fileInput.id = 'restore-file-input';
+    fileInput.style.display = 'none';
+    row.appendChild(fileInput);
+
+    backupBtn.addEventListener('click', exportProgressBackup);
+    restoreBtn.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function(e){
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(evt){ importProgressBackup(evt.target.result); fileInput.value = ''; };
+      reader.readAsText(file);
+    });
+  }
+
+  function exportProgressBackup(){
+    var payload = { app: 'wordlings', exportedAt: new Date().toISOString(), stats: stats };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'wordlings_progress_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function importProgressBackup(text){
+    var parsed;
+    try { parsed = JSON.parse(text); } catch(e){
+      alert('That file doesn\u2019t look like a valid Wordlings backup.');
+      return;
+    }
+    var incoming = (parsed && typeof parsed === 'object' && parsed.stats) ? parsed.stats : parsed;
+    if (!incoming || typeof incoming !== 'object' || !('hatched' in incoming)){
+      alert('That file doesn\u2019t look like a valid Wordlings backup.');
+      return;
+    }
+    if (!confirm('Restore this backup? It will replace all progress currently on this device (stars, Wordlings, quests, mythics). This cannot be undone.')) return;
+    stats = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATS)), incoming);
+    saveStats();
+    pendingHatches = [];
+    questEditMode = false;
+    ensureWeeklyQuest();
+    updateHeaderStats();
+    renderMythicShowcase();
+    renderNicknameBar();
+    alert('Progress restored: ' + Object.keys(stats.hatched).length + ' Wordlings, ' + stats.stars + ' stars, ' + (stats.mythics || []).length + ' Mythics.');
+    showScreen('mode');
+  }
+
+  document.getElementById('reset-btn').addEventListener('click', function(){
+    if (!confirm('Reset all progress? Your Wordlings, stars and streaks will be lost. This cannot be undone.')) return;
+    try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+    stats = JSON.parse(JSON.stringify(DEFAULT_STATS));
+    pendingHatches = [];
+    ensureWeeklyQuest();
+    updateHeaderStats();
+    renderMythicShowcase();
+    renderNicknameBar();
+    showScreen('mode');
+  });
+
+  document.getElementById('album-nav-btn').addEventListener('click', function(){ renderAlbum('all'); showScreen('album'); });
+  document.getElementById('album-back-btn').addEventListener('click', function(){ showScreen('mode'); });
+
+  document.getElementById('addword-nav-btn').addEventListener('click', function(){ renderNewWordsList(); showScreen('addword'); });
+  document.getElementById('addword-back-btn').addEventListener('click', function(){ showScreen('mode'); });
+
+  ensureBackupButtons();
+  renderNicknameBar();
+  if (!stats.nickname) openNicknameModal();
+  updateHeaderStats();
+  showScreen('mode');
+})();
+
+
+</script>
+</body>
+</html>
