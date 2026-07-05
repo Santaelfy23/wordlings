@@ -877,7 +877,12 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       '.new-word-date{font-size:10px;color:var(--cream-dim);opacity:.7;}' +
       '#form-clear-btn{margin-top:8px;}' +
       '.album-slot .slot-word{font-size:14px;font-weight:800;color:var(--cream);font-family:var(--display);margin-top:2px;line-height:1.2;}' +
-      '.album-slot .slot-name{font-size:9px;font-weight:500;color:var(--cream-dim);opacity:.75;}';
+      '.album-slot .slot-name{font-size:9px;font-weight:500;color:var(--cream-dim);opacity:.75;}' +
+      '.speak-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:999px;' +
+        'cursor:pointer;font-size:12px;line-height:1;padding:3px 7px;vertical-align:middle;color:inherit;}' +
+      '.speak-btn:hover{background:rgba(255,255,255,0.22);}' +
+      '.speak-btn:active{transform:scale(0.92);}' +
+      '.album-slot .slot-word .speak-btn{font-size:9px;padding:2px 5px;margin-left:2px;}';
     document.head.appendChild(style);
   })();
 
@@ -1121,7 +1126,11 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   function pickOne(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function normalise(s){ return (s||'').toLowerCase().trim().replace(/[^a-z]/g,''); }
   function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-  function wordKey(w){ return w.word.toLowerCase() + '|' + w.pos; }
+  function wordKey(w){ return w.word.toLowerCase() + '|' + w.pos + (w.sense ? '|' + w.sense.toLowerCase() : ''); }
+
+  // For display only (question prompts, Album, hint text) — NEVER use this for
+  // spelling comparisons or anywhere she has to type/match the literal word.
+  function displayWord(w){ return w.sense ? w.word + ' (' + w.sense + ')' : w.word; }
   function seedFor(w){
     var s = wordKey(w);
     var h = 0;
@@ -1223,14 +1232,14 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   function buildDefineQ(w, pool){
     var distractors = pick(pool.filter(function(x){return x.word!==w.word;}), 3).map(function(x){return x.meaning;});
     var options = shuffle([w.meaning].concat(distractors));
-    return { type:'choice', word:w, prompt: 'What does <span class="target-word">' + w.word + '</span> mean?', options: options, answer: w.meaning, sub: w.pos };
+    return { type:'choice', word:w, prompt: 'What does <span class="target-word">' + displayWord(w) + '</span> mean? ' + speakerBtnHtml(w.word), options: options, answer: w.meaning, sub: w.pos };
   }
   function buildSynonymQ(w, pool){
     if (!w.synonyms.length) return null;
     var correct = pickOne(w.synonyms);
     var distractors = pick(pool.filter(function(x){return x.word!==w.word;}), 3).map(function(x){ return pickOne(x.synonyms.length? x.synonyms : [x.meaning.split(' ').slice(0,2).join(' ')]); });
     var options = shuffle([correct].concat(distractors));
-    return { type:'choice', word:w, prompt: 'Which word is closest in meaning to <span class="target-word">' + w.word + '</span>?', options: options, answer: correct, sub: w.pos };
+    return { type:'choice', word:w, prompt: 'Which word is closest in meaning to <span class="target-word">' + displayWord(w) + '</span>? ' + speakerBtnHtml(w.word), options: options, answer: correct, sub: w.pos };
   }
   function buildAntonymQ(w, pool){
     if (!w.antonyms.length) return null;
@@ -1242,7 +1251,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       distractors = distractors.concat(extra);
     }
     var options = shuffle([correct].concat(distractors));
-    return { type:'choice', word:w, prompt: 'Which word means the <b>opposite</b> of <span class="target-word">' + w.word + '</span>?', options: options, answer: correct, sub: w.pos };
+    return { type:'choice', word:w, prompt: 'Which word means the <b>opposite</b> of <span class="target-word">' + displayWord(w) + '</span>? ' + speakerBtnHtml(w.word), options: options, answer: correct, sub: w.pos };
   }
   function buildClozeQ(w, pool){
     var blanked = makeBlankSentence(w.word, w.sentence);
@@ -1263,9 +1272,12 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     var sameCategory = fullPool.filter(function(w){ return w.category === cat && w.word !== targetWord.word; });
     if (sameCategory.length < 2) return null;
     var companions = pick(sameCategory, 2); // 3 words in the "correct" group including target
-    
-    // pick the odd one out from a DIFFERENT category
-    var diffCategory = fullPool.filter(function(w){ return w.category !== cat; });
+
+    // pick the odd one out from a DIFFERENT category — excluding any word text
+    // already used above, so two senses of the same word (different categories)
+    // can never both appear in one question looking like an identical duplicate
+    var usedText = [targetWord.word.toLowerCase(), companions[0].word.toLowerCase(), companions[1].word.toLowerCase()];
+    var diffCategory = fullPool.filter(function(w){ return w.category !== cat && usedText.indexOf(w.word.toLowerCase()) === -1; });
     if (!diffCategory.length) return null;
     var oddOne = pickOne(diffCategory);
     
@@ -1311,7 +1323,10 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     var catA = shuffledCats[0];
     var catB = shuffledCats[1];
     var wordsA = pick(cats[catA], 3);
-    var wordsB = pick(cats[catB], 3);
+    var usedTextA = wordsA.map(function(w){ return w.word.toLowerCase(); });
+    var catBPool = cats[catB].filter(function(w){ return usedTextA.indexOf(w.word.toLowerCase()) === -1; });
+    if (catBPool.length < 3) return null; // extremely rare — bail gracefully rather than risk a duplicate-looking question
+    var wordsB = pick(catBPool, 3);
     var allWords = shuffle(wordsA.concat(wordsB));
     
     return {
@@ -1368,7 +1383,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   // fall back to looking the word up in the current vocab bank.
   function oxfordLevelForEntry(h){
     if (h.oxfordLevel) return h.oxfordLevel;
-    var match = VOCAB().filter(function(w){ return w.word === h.word && w.category === h.category; })[0];
+    var match = VOCAB().filter(function(w){ return w.word === h.word && w.category === h.category && (w.sense || null) === (h.sense || null); })[0];
     return (match && match.oxfordLevel) || 'B2';
   }
 
@@ -1584,6 +1599,47 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     clearTimeout(toast._hideTimer);
     toast._hideTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2600);
   }
+
+  // ---------- pronunciation ----------
+  // Uses the browser's built-in speech synthesis — no API key, no network call,
+  // works offline. Tuned toward a British voice since that matches her 11+ exam
+  // context, with a graceful silent no-op on any browser that doesn't support it.
+  var preferredVoice = null;
+  function pickVoice(){
+    if (!window.speechSynthesis) return null;
+    var voices = window.speechSynthesis.getVoices();
+    if (!voices || !voices.length) return null;
+    var gb = voices.filter(function(v){ return /en[-_]GB/i.test(v.lang); });
+    if (gb.length) return gb[0];
+    var en = voices.filter(function(v){ return /^en/i.test(v.lang); });
+    return en[0] || voices[0];
+  }
+  if (window.speechSynthesis){
+    preferredVoice = pickVoice();
+    window.speechSynthesis.onvoiceschanged = function(){ preferredVoice = pickVoice(); };
+  }
+  function speakWord(text){
+    if (!window.speechSynthesis || !text) return;
+    try {
+      window.speechSynthesis.cancel(); // stop anything already mid-playback
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'en-GB';
+      utter.rate = 0.85;
+      var v = preferredVoice || pickVoice();
+      if (v) utter.voice = v;
+      window.speechSynthesis.speak(utter);
+    } catch(e){ /* speech unavailable — fail silently, never break the game */ }
+  }
+  function speakerBtnHtml(word){
+    if (!window.speechSynthesis) return '';
+    return '<button type="button" class="speak-btn" data-word="' + escapeHtml(word) + '" title="Hear it" aria-label="Hear pronunciation">\uD83D\uDD0A</button>';
+  }
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest ? e.target.closest('.speak-btn') : null;
+    if (!btn) return;
+    e.stopPropagation();
+    speakWord(btn.getAttribute('data-word'));
+  });
 
   // ---------- nickname ----------
   function escapeHtml(s){
@@ -1931,7 +1987,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     if (isNewHatch){
       var sp = getSpecies(word.category);
       var seed = seedFor(word);
-      stats.hatched[key] = { category: word.category, seed: seed, word: word.word, speciesName: sp.name, correctCount: 1, evolved: false, evolution: word.evolution, grammarMastered: false, masteredSentence: false, oxfordLevel: word.oxfordLevel || 'B2' };
+      stats.hatched[key] = { category: word.category, seed: seed, word: word.word, sense: word.sense || null, speciesName: sp.name, correctCount: 1, evolved: false, evolution: word.evolution, grammarMastered: false, masteredSentence: false, oxfordLevel: word.oxfordLevel || 'B2' };
       pendingHatches.push({ type: 'hatch', entry: stats.hatched[key] });
       return;
     }
@@ -1963,16 +2019,16 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       hatchLabelEl.textContent = 'Your Wordling evolved!';
       hatchName.textContent = h.speciesName + ' grew stronger!';
       var extra = remaining > 0 ? ' (+' + remaining + ' more waiting in your album)' : '';
-      hatchDesc.innerHTML = 'You have mastered "' + h.word + '" ' + EVOLVE_AT + ' times! It just taught you a more powerful word: <b>' + h.evolution + '</b>.' + extra;
+      hatchDesc.innerHTML = 'You have mastered "' + displayWord(h) + '" ' + speakerBtnHtml(h.word) + ' ' + EVOLVE_AT + ' times! It just taught you a more powerful word: <b>' + h.evolution + '</b>.' + extra;
     } else {
       var hatchTier = tierForLevel(oxfordLevelForEntry(h));
       hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, false, hatchTier.color, hatchTier.rank);
       hatchLabelEl.textContent = 'An egg hatched!';
       hatchName.textContent = h.speciesName;
       if (remaining > 0){
-        hatchDesc.textContent = 'Hatched by learning "' + h.word + '". It joins your ' + h.category + ' collection! (+' + remaining + ' more waiting in your album)';
+        hatchDesc.innerHTML = 'Hatched by learning "' + displayWord(h) + '" ' + speakerBtnHtml(h.word) + '. It joins your ' + h.category + ' collection! (+' + remaining + ' more waiting in your album)';
       } else {
-        hatchDesc.textContent = 'Hatched by learning "' + h.word + '". It joins your ' + h.category + ' collection!';
+        hatchDesc.innerHTML = 'Hatched by learning "' + displayWord(h) + '" ' + speakerBtnHtml(h.word) + '. It joins your ' + h.category + ' collection!';
       }
     }
 
@@ -2168,7 +2224,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     if (correct){
       starsText = ' <span class="fb-stars">+' + reward.earned + ' ⭐' + (reward.bonus ? ' (streak bonus!)' : '') + '</span>';
     }
-    fbWord.innerHTML = (correct ? '🎉 ' : '💭 ') + word.word + starsText;
+    fbWord.innerHTML = (correct ? '🎉 ' : '💭 ') + displayWord(word) + starsText + ' ' + speakerBtnHtml(word.word);
     fbText.innerHTML = '<i>' + word.pos + '</i> — ' + word.meaning + (extra ? '<br>' + extra : '');
     nextBtn.classList.add('show');
   }
@@ -2179,7 +2235,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     input.disabled = true;
     submitBtn.disabled = true;
     input.classList.add(correct ? 'correct' : 'incorrect');
-    var extra = correct ? '' : 'Correct spelling: <b>' + q.word.word + '</b>';
+    var extra = correct ? '' : 'Correct spelling: <b>' + displayWord(q.word) + '</b>';
     var reward = recordAnswer(q.word, correct, true);
     showFeedback(q.word, correct, extra, reward);
     if (correct) showSentencePrompt(q.word);
@@ -2382,7 +2438,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       session.missed.forEach(function(w){
         var div = document.createElement('div');
         div.className = 'missed-item';
-        div.innerHTML = '<b>' + w.word + '</b> <i>(' + w.pos + ')</i> — ' + w.meaning;
+        div.innerHTML = '<b>' + displayWord(w) + '</b> ' + speakerBtnHtml(w.word) + ' <i>(' + w.pos + ')</i> — ' + w.meaning;
         list.appendChild(div);
       });
     } else {
@@ -2466,7 +2522,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       var slotStyle = 'border-color:' + tier.color + ';background:' + tier.tint + ';' +
         (tier.glow !== 'rgba(156,163,175,0.0)' ? 'box-shadow:0 0 14px ' + tier.glow + ';' : '');
       html += '<div class="album-slot' + (h.evolved ? ' evolved' : '') + '" style="' + slotStyle + '"><div class="slot-svg">' + renderWordlingSVG(h.category, h.seed, !!h.evolved, tier.color, tier.rank) + '</div>' +
-        '<div class="slot-name">' + h.speciesName + '</div><div class="slot-word">' + h.word + '</div>' +
+        '<div class="slot-name">' + h.speciesName + '</div><div class="slot-word">' + displayWord(h) + ' ' + speakerBtnHtml(h.word) + '</div>' +
         '<div class="slot-tier-tag" style="color:' + tier.color + '">' + tier.name + '</div>' +
         (badges ? '<div class="slot-badges">' + badges + '</div>' : '') + progressNote + '</div>';
     });
