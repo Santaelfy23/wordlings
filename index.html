@@ -716,9 +716,14 @@ var MARKINGS = {
 };
 
 // Render a Wordling as an SVG string. seed picks the face variant deterministically per word.
-// evolved=true gives the creature a glowing aura ring and sparkle accents to show it has
+// evolved=true gives the creature a glowing gold aura ring and star sparkles to show it has
 // leveled up through repeated correct answers.
-function renderWordlingSVG(category, seed, evolved){
+// tierColor/tierRank (optional) add a SEPARATE visual layer for the word's power tier
+// (Common..Legendary) — a colored ring plus a growing number of diamond glints at higher
+// ranks. Deliberately a different color family and glint shape from the evolved-state gold
+// stars, so "this word is mastered" and "this word is naturally rare" read as two distinct,
+// independently-visible signals rather than competing for the same visual language.
+function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   var sp = getSpecies(category);
   var face = FACE_VARIANTS[(seed||0) % FACE_VARIANTS.length](sp.dark);
   var markingSvg = (MARKINGS[sp.mark] || MARKINGS.spark).replace(/currentMark/g, sp.dark);
@@ -731,16 +736,39 @@ function renderWordlingSVG(category, seed, evolved){
       '<path d="M80 32 L81.5 35.5 L85 37 L81.5 38.5 L80 42 L78.5 38.5 L75 37 L78.5 35.5 Z" fill="#FFC857" opacity="0.75"/>' +
       '<path d="M76 76 L77 78.5 L79.5 79.5 L77 80.5 L76 83 L75 80.5 L72.5 79.5 L75 78.5 Z" fill="#FFC857" opacity="0.6"/>'
     : '';
+
+  var rank = tierRank || 0;
+  var tierRing = '';
+  var tierGlints = '';
+  if (tierColor && rank > 0){
+    // subtle ring from Uncommon upward, more solid-looking at higher ranks
+    var ringOpacity = Math.min(0.9, 0.28 + rank * 0.12);
+    tierRing = '<circle cx="50" cy="52" r="37" fill="none" stroke="' + tierColor + '" stroke-width="2" opacity="' + ringOpacity.toFixed(2) + '"/>';
+  }
+  if (tierColor && rank >= 3){
+    // small diamond glints from Epic upward — 1 for Epic, 2 for Arcane, 3 for Legendary.
+    // Positioned clear of the evolved-state gold star corners (top-left/top-right/bottom-right)
+    // so the two effects stay visually distinct even when both are active at once.
+    var glintCount = rank - 2;
+    var positions = [[14, 52], [86, 52], [50, 14]];
+    for (var i = 0; i < glintCount; i++){
+      var p = positions[i];
+      tierGlints += '<path d="M' + p[0] + ' ' + (p[1]-4) + ' L' + (p[0]+3.5) + ' ' + p[1] + ' L' + p[0] + ' ' + (p[1]+4) + ' L' + (p[0]-3.5) + ' ' + p[1] + ' Z" fill="' + tierColor + '" opacity="0.85"/>';
+    }
+  }
+
   return (
     '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
       '<ellipse cx="50" cy="88" rx="26" ry="6" fill="black" opacity="0.12"/>' +
       auraRing +
+      tierRing +
       '<circle cx="50" cy="52" r="34" fill="' + sp.color + '"/>' +
       '<circle cx="50" cy="52" r="34" fill="none" stroke="' + sp.dark + '" stroke-width="2" opacity="0.35"/>' +
       '<g opacity="0.85">' + markingSvg + '</g>' +
       face +
       '<ellipse cx="38" cy="42" rx="6" ry="4" fill="white" opacity="0.35"/>' +
       sparkles +
+      tierGlints +
     '</svg>'
   );
 }
@@ -845,7 +873,11 @@ function renderWordlingSVG(category, seed, evolved){
         'font-weight:700;font-size:10.5px;border-radius:8px;padding:5px 10px;cursor:pointer;}' +
       '.nestegg-empty{font-size:12.5px;color:var(--cream-dim);text-align:center;padding:20px 0;}' +
       '.nestegg-parent-tag{font-size:10.5px;color:#FFD700;margin-bottom:10px;}' +
-      '.slot-tier-tag{font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;margin-top:3px;}';
+      '.slot-tier-tag{font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;margin-top:3px;}' +
+      '.new-word-date{font-size:10px;color:var(--cream-dim);opacity:.7;}' +
+      '#form-clear-btn{margin-top:8px;}' +
+      '.album-slot .slot-word{font-size:14px;font-weight:800;color:var(--cream);font-family:var(--display);margin-top:2px;line-height:1.2;}' +
+      '.album-slot .slot-name{font-size:9px;font-weight:500;color:var(--cream-dim);opacity:.75;}';
     document.head.appendChild(style);
   })();
 
@@ -891,8 +923,7 @@ function renderWordlingSVG(category, seed, evolved){
   var ALL_CATEGORIES = Object.keys(WORDLING_SPECIES);
 
   // user-added words live only in memory for this session (see add-word screen)
-  var customWords = [];
-  function VOCAB(){ return BASE_VOCAB.concat(customWords); }
+  function VOCAB(){ return BASE_VOCAB.concat(stats.pendingWords || []); }
 
   var STARS_PER_EGG = 10;
   var EVOLVE_AT = 3; // correct answers on the same word before it evolves
@@ -1317,12 +1348,12 @@ function renderWordlingSVG(category, seed, evolved){
   // Returns 1 (mastered) to 5 (brand new / never got right)
   // ── POWER TIERS (Album visual rarity, driven by Oxford level) ──────────────
   var TIERS = {
-    Common:    { levels: ['A1','A2'], color: '#9CA3AF', tint: 'rgba(156,163,175,0.12)', glow: 'rgba(156,163,175,0.0)' },
-    Uncommon:  { levels: ['B1'],      color: '#4ADE80', tint: 'rgba(74,222,128,0.12)',  glow: 'rgba(74,222,128,0.25)' },
-    Rare:      { levels: ['B2'],      color: '#60A5FA', tint: 'rgba(96,165,250,0.12)',  glow: 'rgba(96,165,250,0.3)' },
-    Epic:      { levels: ['C1'],      color: '#C084FC', tint: 'rgba(192,132,252,0.14)', glow: 'rgba(192,132,252,0.4)' },
-    Arcane:    { levels: ['C2'],      color: '#2DD4BF', tint: 'rgba(45,212,191,0.15)',  glow: 'rgba(45,212,191,0.45)' },
-    Legendary: { levels: ['Beyond'],  color: '#FB923C', tint: 'rgba(251,146,60,0.16)',  glow: 'rgba(251,146,60,0.5)' }
+    Common:    { rank: 0, levels: ['A1','A2'], color: '#9CA3AF', tint: 'rgba(156,163,175,0.12)', glow: 'rgba(156,163,175,0.0)' },
+    Uncommon:  { rank: 1, levels: ['B1'],      color: '#4ADE80', tint: 'rgba(74,222,128,0.12)',  glow: 'rgba(74,222,128,0.25)' },
+    Rare:      { rank: 2, levels: ['B2'],      color: '#60A5FA', tint: 'rgba(96,165,250,0.12)',  glow: 'rgba(96,165,250,0.3)' },
+    Epic:      { rank: 3, levels: ['C1'],      color: '#C084FC', tint: 'rgba(192,132,252,0.14)', glow: 'rgba(192,132,252,0.4)' },
+    Arcane:    { rank: 4, levels: ['C2'],      color: '#2DD4BF', tint: 'rgba(45,212,191,0.15)',  glow: 'rgba(45,212,191,0.45)' },
+    Legendary: { rank: 5, levels: ['Beyond'],  color: '#FB923C', tint: 'rgba(251,146,60,0.16)',  glow: 'rgba(251,146,60,0.5)' }
   };
   var LEVEL_TO_TIER = {};
   Object.keys(TIERS).forEach(function(t){ TIERS[t].levels.forEach(function(l){ LEVEL_TO_TIER[l] = t; }); });
@@ -1330,7 +1361,7 @@ function renderWordlingSVG(category, seed, evolved){
   function tierForLevel(level){
     var tierName = LEVEL_TO_TIER[level] || 'Rare';
     var t = TIERS[tierName];
-    return { name: tierName, color: t.color, tint: t.tint, glow: t.glow };
+    return { name: tierName, color: t.color, tint: t.tint, glow: t.glow, rank: t.rank };
   }
 
   // Wordlings hatched before oxfordLevel was tracked won't have it stored —
@@ -1927,13 +1958,15 @@ function renderWordlingSVG(category, seed, evolved){
       hatchDesc.innerHTML = 'A rare purple-and-gold <b>Mythic Wordling</b> has appeared! You earned it by completing both quests this week — one of a kind, and yours to keep.';
       hatchOverlay.classList.add('mythic-overlay');
     } else if (item.type === 'evolve'){
-      hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, true);
+      var evolveTier = tierForLevel(oxfordLevelForEntry(h));
+      hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, true, evolveTier.color, evolveTier.rank);
       hatchLabelEl.textContent = 'Your Wordling evolved!';
       hatchName.textContent = h.speciesName + ' grew stronger!';
       var extra = remaining > 0 ? ' (+' + remaining + ' more waiting in your album)' : '';
       hatchDesc.innerHTML = 'You have mastered "' + h.word + '" ' + EVOLVE_AT + ' times! It just taught you a more powerful word: <b>' + h.evolution + '</b>.' + extra;
     } else {
-      hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, false);
+      var hatchTier = tierForLevel(oxfordLevelForEntry(h));
+      hatchSvgWrap.innerHTML = renderWordlingSVG(h.category, h.seed, false, hatchTier.color, hatchTier.rank);
       hatchLabelEl.textContent = 'An egg hatched!';
       hatchName.textContent = h.speciesName;
       if (remaining > 0){
@@ -2432,7 +2465,7 @@ function renderWordlingSVG(category, seed, evolved){
       var tier = tierForLevel(oxfordLevelForEntry(h));
       var slotStyle = 'border-color:' + tier.color + ';background:' + tier.tint + ';' +
         (tier.glow !== 'rgba(156,163,175,0.0)' ? 'box-shadow:0 0 14px ' + tier.glow + ';' : '');
-      html += '<div class="album-slot' + (h.evolved ? ' evolved' : '') + '" style="' + slotStyle + '"><div class="slot-svg">' + renderWordlingSVG(h.category, h.seed, !!h.evolved) + '</div>' +
+      html += '<div class="album-slot' + (h.evolved ? ' evolved' : '') + '" style="' + slotStyle + '"><div class="slot-svg">' + renderWordlingSVG(h.category, h.seed, !!h.evolved, tier.color, tier.rank) + '</div>' +
         '<div class="slot-name">' + h.speciesName + '</div><div class="slot-word">' + h.word + '</div>' +
         '<div class="slot-tier-tag" style="color:' + tier.color + '">' + tier.name + '</div>' +
         (badges ? '<div class="slot-badges">' + badges + '</div>' : '') + progressNote + '</div>';
@@ -2453,33 +2486,61 @@ function renderWordlingSVG(category, seed, evolved){
   var categorySelect = document.getElementById('nw-category');
   categorySelect.innerHTML = ALL_CATEGORIES.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
 
+  (function addSourceField(){
+    if (document.getElementById('nw-source')) return;
+    var formMsg = document.getElementById('form-msg');
+    if (!formMsg) return;
+    var row = document.createElement('div');
+    row.className = 'form-row';
+    row.innerHTML =
+      '<label for="nw-source">Where did you learn this word?</label>' +
+      '<input type="text" id="nw-source" list="nw-source-list" placeholder="e.g. StC, 11+ CGP cards, a book I\u2019m reading">' +
+      '<datalist id="nw-source-list">' +
+        '<option value="StC">' +
+        '<option value="11+ CGP VR CEM">' +
+        '<option value="EPP comprehension">' +
+        '<option value="Training session">' +
+        '<option value="Reading">' +
+        '<option value="My brain">' +
+      '</datalist>';
+    formMsg.parentNode.insertBefore(row, formMsg);
+  })();
+
   function renderNewWordsList(){
     var wrap = document.getElementById('new-words-list-wrap');
     var list = document.getElementById('new-words-list');
     var exportBtn = document.getElementById('form-export-btn');
-    if (!customWords.length){
+    var pending = stats.pendingWords || [];
+    if (!pending.length){
       wrap.style.display = 'none';
       exportBtn.disabled = true;
+      var clearBtnEmpty = document.getElementById('form-clear-btn');
+      if (clearBtnEmpty) clearBtnEmpty.disabled = true;
       return;
     }
     wrap.style.display = 'block';
     exportBtn.disabled = false;
     list.innerHTML = '';
-    customWords.forEach(function(w, i){
+    pending.forEach(function(w, i){
       var div = document.createElement('div');
       div.className = 'new-word-item';
-      div.innerHTML = '<span><b>' + w.word + '</b> (' + w.pos + ') — ' + w.meaning + '</span>';
+      div.innerHTML = '<span><b>' + w.word + '</b> (' + w.pos + ') — ' + w.meaning +
+        '<br><span class="new-word-date">' + (w.source ? w.source + (w.dateAdded ? ' · ' : '') : '') + (w.dateAdded ? 'Added ' + w.dateAdded : '') + '</span></span>';
       var btn = document.createElement('button');
       btn.className = 'remove-word-btn';
       btn.textContent = '✕';
       btn.title = 'Remove this word';
       btn.addEventListener('click', function(){
-        customWords.splice(i, 1);
+        stats.pendingWords.splice(i, 1);
+        saveStats();
         renderNewWordsList();
       });
       div.appendChild(btn);
       list.appendChild(div);
     });
+
+    var clearBtn = document.getElementById('form-clear-btn');
+    if (clearBtn) clearBtn.disabled = false;
   }
 
   function showFormMsg(text, isError){
@@ -2508,7 +2569,10 @@ function renderWordlingSVG(category, seed, evolved){
       showFormMsg('That word is already in the collection!', true);
       return;
     }
-    customWords.push({ word: word, pos: pos, category: category, meaning: meaning, sentence: sentence, synonyms: synonyms, antonyms: antonyms });
+    if (!stats.pendingWords) stats.pendingWords = [];
+    var sourceVal = (document.getElementById('nw-source').value || '').trim() || 'Not specified';
+    stats.pendingWords.push({ word: word, pos: pos, category: category, meaning: meaning, sentence: sentence, synonyms: synonyms, antonyms: antonyms, source: sourceVal, dateAdded: new Date().toISOString().slice(0,10) });
+    saveStats();
     var justCompleted = updateQuestProgress('addword');
     if (justCompleted) queueMythicReward();
     var q = getCurrentQuest();
@@ -2519,14 +2583,16 @@ function renderWordlingSVG(category, seed, evolved){
     document.getElementById('nw-sentence').value = '';
     document.getElementById('nw-synonyms').value = '';
     document.getElementById('nw-antonyms').value = '';
+    document.getElementById('nw-source').value = '';
     renderNewWordsList();
     updateHeaderStats();
     if (justCompleted) setTimeout(function(){ showNextHatch(); }, 300);
   });
 
   document.getElementById('form-export-btn').addEventListener('click', function(){
-    if (!customWords.length) return;
-    var blob = new Blob([JSON.stringify(customWords, null, 2)], { type: 'application/json' });
+    var pending = stats.pendingWords || [];
+    if (!pending.length) return;
+    var blob = new Blob([JSON.stringify(pending, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
@@ -2536,6 +2602,26 @@ function renderWordlingSVG(category, seed, evolved){
     document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   });
+
+  (function addClearPendingWordsButton(){
+    var exportBtn = document.getElementById('form-export-btn');
+    if (!exportBtn || document.getElementById('form-clear-btn')) return;
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.id = 'form-clear-btn';
+    clearBtn.className = 'secondary-btn';
+    clearBtn.textContent = '🗑️ Clear this list';
+    clearBtn.title = 'Once these words are safely saved into the main database, clear this list to start fresh';
+    clearBtn.disabled = !(stats.pendingWords || []).length;
+    exportBtn.insertAdjacentElement('afterend', clearBtn);
+    clearBtn.addEventListener('click', function(){
+      if (!(stats.pendingWords || []).length) return;
+      if (!confirm('Clear this list of new words? Only do this once you\u2019ve downloaded them and a grown-up has saved them into the main database \u2014 this cannot be undone.')) return;
+      stats.pendingWords = [];
+      saveStats();
+      renderNewWordsList();
+    });
+  })();
 
   // ---------- wiring ----------
   document.querySelectorAll('.mode-card').forEach(function(card){
