@@ -966,6 +966,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     hintAllowance: HINT_STARTING_ALLOWANCE,
     tokenLedger: [], // [{ id, earnedDate, status: 'pending'|'fulfilled', fulfilledDate }]
     comfortRoundsRemaining: 0, // after a rough round, the next N rounds lean easier
+    lifetimeStars: 0, // total ever earned — never reduced by cashing out Tokens
   };
 
   // ── QUEST & MYTHIC SYSTEM ──────────────────────────────────────────────────
@@ -1112,6 +1113,12 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   }
 
   var stats = loadStats();
+  if (!stats.lifetimeStars && (stats.stars > 0 || (stats.tokenLedger || []).length > 0)){
+    // One-time migration for saves from before this feature existed: current
+    // spendable balance plus everything already cashed into Tokens accounts
+    // for her true lifetime total, since nothing else has ever spent stars.
+    stats.lifetimeStars = stats.stars + (stats.tokenLedger || []).length * TOKEN_STAR_RATE;
+  }
   ensureWeeklyQuest();
 
   // ---------- helpers ----------
@@ -1810,6 +1817,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
         (ready > 0 ? '<button class="nestegg-cashout-btn" id="nestegg-cashout-btn">\uD83D\uDC5B Cash Out ' + ready + ' Token' + (ready > 1 ? 's' : '') + '</button>' : '') +
       '</div>' +
       '<div class="nestegg-stat-row">' +
+        '<div class="mini-chip">\uD83C\uDF1F Lifetime: <b>' + (stats.lifetimeStars || 0) + '</b></div>' +
         '<div class="mini-chip">\uD83E\uDE99 Pending: <b>' + pending.length + '</b></div>' +
         '<div class="mini-chip">\u2705 Redeemed: <b>' + fulfilled.length + '</b></div>' +
       '</div>';
@@ -1972,6 +1980,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
 
   function awardStars(n){
     stats.stars += n;
+    stats.lifetimeStars = (stats.lifetimeStars || 0) + n;
     updateHeaderStats();
   }
 
