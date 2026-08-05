@@ -863,6 +863,10 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       '.nestegg-trade-btn{width:100%;background:rgba(200,160,248,0.18);border:1px solid rgba(200,160,248,0.4);' +
         'color:#E4CFFB;font-family:var(--display);font-weight:700;font-size:12.5px;border-radius:12px;padding:10px;' +
         'cursor:pointer;margin-bottom:16px;}' +
+      '.nestegg-history-btn{width:100%;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.25);' +
+        'color:var(--cream-dim);font-family:var(--display);font-weight:700;font-size:12px;border-radius:12px;' +
+        'padding:9px;cursor:pointer;margin-bottom:14px;}' +
+      '.nestegg-history-btn:hover{color:var(--cream);border-color:rgba(255,255,255,0.45);}' +
       '.nestegg-ledger{display:flex;flex-direction:column;gap:8px;}' +
       '.nestegg-ledger-row{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;' +
         'padding:10px 12px;font-size:12px;color:var(--cream);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}' +
@@ -1751,6 +1755,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   }
 
   var nestEggParentMode = false;
+  var nestEggLedgerExpanded = false;
   var neTapCount = 0;
   var neTapTimer = null;
   function registerNestEggTap(){
@@ -1835,21 +1840,28 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       html += '<button class="nestegg-trade-btn" id="nestegg-trade-btn">\uD83D\uDCA1 Trade 1 Token for ' + TOKEN_TO_HINTS + ' hints instead</button>';
     }
 
-    html += '<div class="nestegg-ledger">';
-    if (!pending.length && !fulfilled.length){
-      html += '<div class="nestegg-empty">No Tokens yet \u2014 keep saving stars! \u2b50</div>';
-    } else {
-      pending.forEach(function(t){
-        html += '<div class="nestegg-ledger-row pending">\uD83E\uDE99 Token \u2014 earned ' + t.earnedDate +
-          '<span class="ne-status">Pending</span>' +
-          (nestEggParentMode ? '<button class="ne-fulfill-btn" data-id="' + t.id + '">Mark bought</button>' : '') +
-          '</div>';
-      });
-      fulfilled.forEach(function(t){
-        html += '<div class="nestegg-ledger-row fulfilled">\u2705 Token \u2014 earned ' + t.earnedDate + ', redeemed ' + t.fulfilledDate + '</div>';
-      });
+    var totalTokens = pending.length + fulfilled.length;
+    html += '<button class="nestegg-history-btn" id="nestegg-history-btn">' +
+      (nestEggLedgerExpanded ? '\u25B2 Hide token history' : '\uD83D\uDCDC View token history (' + totalTokens + ')') +
+      '</button>';
+
+    if (nestEggLedgerExpanded){
+      html += '<div class="nestegg-ledger">';
+      if (!pending.length && !fulfilled.length){
+        html += '<div class="nestegg-empty">No Tokens yet \u2014 keep saving stars! \u2b50</div>';
+      } else {
+        pending.forEach(function(t){
+          html += '<div class="nestegg-ledger-row pending">\uD83E\uDE99 Token \u2014 earned ' + t.earnedDate +
+            '<span class="ne-status">Pending</span>' +
+            (nestEggParentMode ? '<button class="ne-fulfill-btn" data-id="' + t.id + '">Mark bought</button>' : '') +
+            '</div>';
+        });
+        fulfilled.forEach(function(t){
+          html += '<div class="nestegg-ledger-row fulfilled">\u2705 Token \u2014 earned ' + t.earnedDate + ', redeemed ' + t.fulfilledDate + '</div>';
+        });
+      }
+      html += '</div>';
     }
-    html += '</div>';
 
     el.innerHTML = html;
 
@@ -1859,6 +1871,10 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     if (cashoutBtn) cashoutBtn.addEventListener('click', cashOutTokens);
     var tradeBtn = document.getElementById('nestegg-trade-btn');
     if (tradeBtn) tradeBtn.addEventListener('click', tradeTokenForHints);
+    document.getElementById('nestegg-history-btn').addEventListener('click', function(){
+      nestEggLedgerExpanded = !nestEggLedgerExpanded;
+      renderNestEgg();
+    });
     if (nestEggParentMode){
       Array.prototype.slice.call(el.querySelectorAll('.ne-fulfill-btn')).forEach(function(btn){
         btn.addEventListener('click', function(){ markTokenFulfilled(btn.getAttribute('data-id')); });
@@ -2774,7 +2790,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
 
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'application/json,.json,.txt,text/plain';
+    fileInput.accept = 'application/json';
     fileInput.id = 'restore-file-input';
     fileInput.style.display = 'none';
     row.appendChild(fileInput);
