@@ -2774,7 +2774,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
 
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'application/json';
+    fileInput.accept = 'application/json,.json,.txt,text/plain';
     fileInput.id = 'restore-file-input';
     fileInput.style.display = 'none';
     row.appendChild(fileInput);
