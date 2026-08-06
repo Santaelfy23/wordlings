@@ -887,7 +887,11 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       '.speak-btn:hover{background:rgba(255,255,255,0.22);}' +
       '.speak-btn:active{transform:scale(0.92);}' +
       '.album-slot .slot-word .speak-btn{font-size:9px;padding:2px 5px;margin-left:2px;}' +
-      '#evolve-bridge-btn{display:none;width:100%;text-align:center;justify-content:center;margin-bottom:10px;box-sizing:border-box;}';
+      '#evolve-bridge-btn{display:none;width:100%;text-align:center;justify-content:center;margin-bottom:10px;box-sizing:border-box;}' +
+      '.mode-card.mode-locked{opacity:0.4;filter:grayscale(0.7);cursor:not-allowed;position:relative;}' +
+      '.mode-card.mode-locked::after{content:"\uD83D\uDD12 Play something else first";position:absolute;inset:0;' +
+        'display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);border-radius:inherit;' +
+        'font-size:10.5px;font-weight:700;color:#fff;text-align:center;padding:10px;font-family:var(--display);}';
     document.head.appendChild(style);
   })();
 
@@ -962,6 +966,8 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   var COMFORT_TRIGGER_ACCURACY = 0.5; // a round below this accuracy triggers comfort mode
   var COMFORT_ROUNDS = 2;             // how many following rounds lean easier
 
+  var REVIEW_INTERVAL_DAYS = 21;      // mastered words resurface into normal rotation if unseen this long
+
   var SAVE_KEY = 'wordlings_progress_v1';
 
   var DEFAULT_STATS = {
@@ -980,12 +986,15 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     tokenLedger: [], // [{ id, earnedDate, status: 'pending'|'fulfilled', fulfilledDate }]
     comfortRoundsRemaining: 0, // after a rough round, the next N rounds lean easier
     lifetimeStars: 0, // total ever earned — never reduced by cashing out Tokens
+    modeStreak: { mode: null, count: 0 }, // consecutive plays of one mode, for the variety lock
   };
 
   // ── QUEST & MYTHIC SYSTEM ──────────────────────────────────────────────────
   var MODES_LIST = ['spelling','define','synonym','antonym','cloze','oddonout','wordfamily'];
+  var MODE_LOCK_EXEMPT = ['spelling','mixed']; // always available, never locked
+  var MODE_LOCK_STREAK_LIMIT = 3;              // plays of the same mode in a row before it locks
   var MODE_LABELS = {spelling:'Spelling Launch 🚀',define:'Meaning Match 🔍',synonym:'Twin Words ✨',antonym:'Opposite Day 🌗',cloze:'Fill the Gap 🧩',oddonout:'Odd One Out 🔎',wordfamily:'Word Family 🌿'};
-  var DEFAULT_WORD_TARGET = 10;       // "add N new words this week" — a parent can override this
+  var DEFAULT_WORD_TARGET = 5;        // "add N new words this week" — a parent can override this
   var DEFAULT_CHALLENGE_TARGET = 3;   // "play mode X N times this week"
 
   function getWeekKey(){
@@ -999,6 +1008,22 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     var counts={};
     MODES_LIST.forEach(function(m){counts[m]=0;});
     if(stats.modePlays) Object.keys(stats.modePlays).forEach(function(m){if(counts.hasOwnProperty(m))counts[m]=stats.modePlays[m];});
+
+    // If the same mode was picked as the Challenge Quest for each of the last
+    // 2 weeks and made zero progress both times, she's clearly not engaging
+    // with it — avoid a 3rd week stuck on the same thing and pick a
+    // different least-played mode instead.
+    var recentQuests = (stats.quests || []).slice(-2);
+    if (recentQuests.length === 2 &&
+        recentQuests[0].challengeQuest && recentQuests[1].challengeQuest &&
+        recentQuests[0].challengeQuest.mode === recentQuests[1].challengeQuest.mode &&
+        recentQuests[0].challengeQuest.progress === 0 &&
+        recentQuests[1].challengeQuest.progress === 0){
+      var stuckMode = recentQuests[1].challengeQuest.mode;
+      var candidates = MODES_LIST.filter(function(m){ return m !== stuckMode; });
+      if (candidates.length) return candidates.reduce(function(a,b){return counts[a]<=counts[b]?a:b;});
+    }
+
     return MODES_LIST.reduce(function(a,b){return counts[a]<=counts[b]?a:b;});
   }
 
@@ -1451,6 +1476,21 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     if (correct < 3) basePriority = 3;
     else if (correct < EVOLVE_AT) basePriority = 2;
     else basePriority = 1; // mastered / evolved
+
+    // Spaced-repetition rescue: a mastered word normally drops to the lowest
+    // priority permanently, which in practice meant it almost never got
+    // selected again once the bank grew large. If it's been a while since she
+    // last saw it (or we have no record at all, e.g. an older save from
+    // before this was tracked), treat it like a not-yet-fully-mastered word
+    // again so it periodically resurfaces instead of being forgotten.
+    if (basePriority === 1){
+      if (!entry.lastSeenDate){
+        basePriority = 3;
+      } else {
+        var daysSinceSeen = Math.floor((Date.now() - new Date(entry.lastSeenDate)) / (1000 * 60 * 60 * 24));
+        if (daysSinceSeen >= REVIEW_INTERVAL_DAYS) basePriority = 3;
+      }
+    }
 
     // Apply difficulty boost, clamped between 1 and 4
     var finalPriority = Math.max(1, Math.min(4, basePriority + diffBoost));
@@ -2022,7 +2062,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     if (isNewHatch){
       var sp = getSpecies(word.category);
       var seed = seedFor(word);
-      stats.hatched[key] = { category: word.category, seed: seed, word: word.word, sense: word.sense || null, speciesName: sp.name, correctCount: 1, evolved: false, evolution: word.evolution, grammarMastered: false, masteredSentence: false, oxfordLevel: word.oxfordLevel || 'B2' };
+      stats.hatched[key] = { category: word.category, seed: seed, word: word.word, sense: word.sense || null, speciesName: sp.name, correctCount: 1, evolved: false, evolution: word.evolution, grammarMastered: false, masteredSentence: false, oxfordLevel: word.oxfordLevel || 'B2', lastSeenDate: new Date().toISOString().slice(0, 10) };
       pendingHatches.push({ type: 'hatch', entry: stats.hatched[key] });
       return;
     }
@@ -2262,7 +2302,13 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   }
 
   // ---------- answer checking ----------
+  function touchLastSeen(word){
+    var entry = stats.hatched[wordKey(word)];
+    if (entry) entry.lastSeenDate = new Date().toISOString().slice(0, 10);
+  }
+
   function recordAnswer(word, correct, isSpelling){
+    touchLastSeen(word);
     stats.totalAnswered++;
     var starsForCorrect = isSpelling ? STARS_SPELL : STARS_CHOICE;
     if (correct){
@@ -2472,12 +2518,37 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   }
 
   // ---------- results ----------
+  function isModeLocked(mode){
+    if (MODE_LOCK_EXEMPT.indexOf(mode) !== -1) return false;
+    return !!(stats.modeStreak && stats.modeStreak.mode === mode && stats.modeStreak.count >= MODE_LOCK_STREAK_LIMIT);
+  }
+
+  function updateModeLockUI(){
+    document.querySelectorAll('.mode-card').forEach(function(card){
+      var mode = card.getAttribute('data-mode');
+      var locked = isModeLocked(mode);
+      card.classList.toggle('mode-locked', locked);
+      card.disabled = locked;
+    });
+  }
+
   function trackModePlay(mode){
     if (!stats.modePlays) stats.modePlays = {};
     stats.modePlays[mode] = (stats.modePlays[mode] || 0) + 1;
+
+    // Variety lock: 3 plays of the same mode in a row (Spelling and Big Quest
+    // exempt) locks it until she plays something different — quietly nudges
+    // her toward the other modes instead of settling into just one.
+    if (MODE_LOCK_EXEMPT.indexOf(mode) === -1){
+      if (!stats.modeStreak) stats.modeStreak = { mode: null, count: 0 };
+      if (stats.modeStreak.mode === mode) stats.modeStreak.count += 1;
+      else stats.modeStreak = { mode: mode, count: 1 };
+    }
+
     if (updateQuestProgress('mode', mode)) queueMythicReward();
     saveStats();
     renderQuestPanel();
+    updateModeLockUI();
   }
 
   function showResults(){
@@ -2757,7 +2828,14 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
 
   // ---------- wiring ----------
   document.querySelectorAll('.mode-card').forEach(function(card){
-    card.addEventListener('click', function(){ startMode(card.getAttribute('data-mode')); });
+    card.addEventListener('click', function(){
+      var mode = card.getAttribute('data-mode');
+      if (isModeLocked(mode)){
+        showToast('\uD83D\uDD12 Play a different mode first to unlock this one again!');
+        return;
+      }
+      startMode(mode);
+    });
   });
   document.getElementById('quit-btn').addEventListener('click', function(){
     if (session && session.idx > 0) showResults();
@@ -2840,6 +2918,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     renderMythicShowcase();
     renderNicknameBar();
     if (screens.nestegg) renderNestEgg();
+    updateModeLockUI();
     alert('Progress restored: ' + Object.keys(stats.hatched).length + ' Wordlings, ' + stats.stars + ' stars, ' + (stats.mythics || []).length + ' Mythics.');
     showScreen('mode');
   }
@@ -2854,6 +2933,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     renderMythicShowcase();
     renderNicknameBar();
     if (screens.nestegg) renderNestEgg();
+    updateModeLockUI();
     showScreen('mode');
   });
 
@@ -2864,6 +2944,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   document.getElementById('addword-back-btn').addEventListener('click', function(){ showScreen('mode'); });
 
   ensureBackupButtons();
+  updateModeLockUI();
   ensureNestEggScreen();
   renderNicknameBar();
   if (!stats.nickname) openNicknameModal();
