@@ -1079,10 +1079,10 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
   };
 
   // ── QUEST & MYTHIC SYSTEM ──────────────────────────────────────────────────
-  var MODES_LIST = ['spelling','define','synonym','antonym','cloze','oddonout','wordfamily'];
+  var MODES_LIST = ['spelling','define','synonym','antonym','cloze','oddonout','wordfamily','analogy'];
   var MODE_LOCK_EXEMPT = ['spelling','mixed']; // always available, never locked
   var MODE_LOCK_STREAK_LIMIT = 3;              // plays of the same mode in a row before it locks
-  var MODE_LABELS = {spelling:'Spelling Launch 🚀',define:'Meaning Match 🔍',synonym:'Twin Words ✨',antonym:'Opposite Day 🌗',cloze:'Fill the Gap 🧩',oddonout:'Odd One Out 🔎',wordfamily:'Word Family 🌿'};
+  var MODE_LABELS = {spelling:'Spelling Launch 🚀',define:'Meaning Match 🔍',synonym:'Twin Words ✨',antonym:'Opposite Day 🌗',cloze:'Fill the Gap 🧩',oddonout:'Odd One Out 🔎',wordfamily:'Word Family 🌿',analogy:'Word Links 🔗'};
   var DEFAULT_WORD_TARGET = 5;        // "add N new words this week" — a parent can override this
   var DEFAULT_CHALLENGE_TARGET = 3;   // "play mode X N times this week"
 
@@ -1360,6 +1360,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     oddonout:   { label: 'Odd One Out', icon:'🔎', eyebrow: 'Which word does not belong?', size: 10 },
     wordfamily: { label: 'Word Family', icon:'🌿', eyebrow: 'Group the related words', size: 8 },
     mixed:      { label: 'Big Quest', icon:'🌟', eyebrow: 'Mixed quest', size: 20 },
+    analogy:    { label: 'Word Links', icon:'🔗', eyebrow: 'Complete the analogy', size: 10 },
   };
 
   // ---------- question builders ----------
@@ -1492,7 +1493,57 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     synonym: buildSynonymQ,
     antonym: buildAntonymQ,
     cloze: buildClozeQ,
+    analogy: buildAnalogyQ,
   };
+
+  // "X is to Y as Z is to ___" — 5 options (matches her real exam format).
+  // Reuses real synonym/antonym data already in the bank rather than needing
+  // a separate curated dataset. One distractor is always the tested word's
+  // OTHER relationship (e.g. its synonym when the answer should be its
+  // antonym) — the single most common real trap in this question type,
+  // since it catches "picked a related word but the wrong relationship"
+  // rather than "didn't know the word at all".
+  function buildAnalogyQ(w, pool){
+    var useAntonym = !!(w.antonyms && w.antonyms.length);
+    var useSynonym = !useAntonym && !!(w.synonyms && w.synonyms.length);
+    if (!useAntonym && !useSynonym) return null;
+
+    var correct = useAntonym ? pickOne(w.antonyms) : pickOne(w.synonyms);
+
+    var pairCandidates = pool.filter(function(x){
+      return x.word !== w.word && (useAntonym ? (x.antonyms && x.antonyms.length) : (x.synonyms && x.synonyms.length));
+    });
+    if (!pairCandidates.length) return null;
+    var pairWord = pickOne(pairCandidates);
+    var pairAnswer = useAntonym ? pickOne(pairWord.antonyms) : pickOne(pairWord.synonyms);
+
+    var trapList = useAntonym ? w.synonyms : w.antonyms;
+    var trap = (trapList && trapList.length) ? pickOne(trapList) : null;
+
+    var distractorPool = shuffle(pool.filter(function(x){ return x.word !== w.word && x.word !== pairWord.word; }));
+    var distractors = [];
+    if (trap && trap.toLowerCase() !== correct.toLowerCase()) distractors.push(trap);
+    for (var i = 0; i < distractorPool.length && distractors.length < 4; i++){
+      var x = distractorPool[i];
+      var list = useAntonym ? x.antonyms : x.synonyms;
+      var candidate = (list && list.length) ? pickOne(list) : (x.synonyms.length ? pickOne(x.synonyms) : null);
+      if (!candidate) continue;
+      var lc = candidate.toLowerCase();
+      if (lc === correct.toLowerCase()) continue;
+      if (distractors.some(function(d){ return d.toLowerCase() === lc; })) continue;
+      distractors.push(candidate);
+    }
+    if (distractors.length < 4) return null;
+
+    var options = shuffle([correct].concat(distractors.slice(0, 4)));
+    var prompt = '<span class="target-word">' + displayWord(pairWord) + '</span> is to <b>' + pairAnswer +
+      '</b> as <span class="target-word">' + displayWord(w) + '</span> is to ___ ' + speakerBtnHtml(w.word);
+    return {
+      type: 'choice', word: w, prompt: prompt, options: options, answer: correct, sub: w.pos, isAnalogy: true,
+      relType: useAntonym ? 'antonym' : 'synonym',
+      pairWord: pairWord.word, pairAnswer: pairAnswer, pairPos: pairWord.pos
+    };
+  }
 
   // ---------- spaced repetition priority ----------
   // Returns 1 (mastered) to 5 (brand new / never got right)
@@ -1636,6 +1687,7 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
     if (mode === 'cloze') return v.filter(function(w){ return !!findWordSpanInSentence(w.word, w.sentence); });
     if (mode === 'oddonout') return v.filter(function(w){ return w.category; });
     if (mode === 'wordfamily') return v.filter(function(w){ return w.category; });
+    if (mode === 'analogy') return v.filter(function(w){ return (w.synonyms && w.synonyms.length) || (w.antonyms && w.antonyms.length); });
     return v;
   }
 
@@ -3198,6 +3250,17 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
       extra = correct
         ? 'The other three (' + q.groupWords.map(cap).join(', ') + ') all belong to <b>' + q.groupCategory + '</b>'
         : 'The odd one out was <b>' + q.answer + '</b> — the others belong to <b>' + q.groupCategory + '</b>';
+    } else if (q.isAnalogy){
+      if (correct){
+        extra = '';
+      } else {
+        var relWord = q.relType === 'antonym' ? 'opposites' : 'similar in meaning';
+        var relVerb = q.relType === 'antonym' ? 'its opposite' : 'a word close in meaning';
+        extra = '🔗 <b>' + cap(q.pairWord) + '</b> and <b>' + cap(q.pairAnswer) + '</b> are ' + relWord +
+          ' — so <b>' + displayWord(q.word) + '</b> needed ' + relVerb + ' too: <b>' + cap(q.answer) + '</b>.' +
+          '<br>💡 Tip: <b>' + displayWord(q.word) + '</b> is a' + (/^[aeiou]/i.test(q.word.pos) ? 'n' : '') + ' <b>' + q.word.pos + '</b>, ' +
+          'so the answer had to be a' + (/^[aeiou]/i.test(q.word.pos) ? 'n' : '') + ' <b>' + q.word.pos + '</b> too — that rules out options that don\u2019t match, even if they seem related.';
+      }
     } else {
       extra = correct ? '' : 'Correct answer: <b>' + q.answer + '</b>';
     }
@@ -3639,6 +3702,29 @@ function renderWordlingSVG(category, seed, evolved, tierColor, tierRank){
 
   document.getElementById('addword-nav-btn').addEventListener('click', function(){ renderNewWordsList(); showScreen('addword'); });
   document.getElementById('addword-back-btn').addEventListener('click', function(){ showScreen('mode'); });
+
+  (function ensureAnalogyModeCard(){
+    if (document.querySelector('.mode-card[data-mode="analogy"]')) return;
+    var grid = document.querySelector('.mode-grid');
+    if (!grid) return;
+    var meta = MODE_META.analogy;
+    var card = document.createElement('button');
+    card.className = 'mode-card';
+    card.setAttribute('data-mode', 'analogy');
+    card.innerHTML =
+      '<span class="star-tag">\u2b50 x' + meta.size + '</span>' +
+      '<span class="mode-icon">' + meta.icon + '</span>' +
+      '<h3>' + meta.label + '</h3>' +
+      '<p>Work out the relationship, then find the matching word \u2014 real 5-option exam style.</p>';
+    grid.appendChild(card);
+    card.addEventListener('click', function(){
+      if (isModeLocked('analogy')){
+        showToast('\uD83D\uDD12 Play a different mode first to unlock this one again!');
+        return;
+      }
+      startMode('analogy');
+    });
+  })();
 
   ensureBackupButtons();
   updateModeLockUI();
